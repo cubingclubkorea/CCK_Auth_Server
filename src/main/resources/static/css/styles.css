@@ -1,0 +1,365 @@
+body {
+    background-color: #f1f5f9;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.login-box {
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.logo {
+    margin-top: 15px;
+    margin-bottom: -30px;
+}
+.logo img {
+    height: 80px;
+    max-width: 100%;
+}
+h2 {
+    margin-bottom: 25px;
+    font-weight: bold;
+    color: #333;
+    font-size: 1.8rem;
+}
+.input-group {
+    margin-bottom: 15px;
+    text-align: left;
+    position: relative;
+}
+.input-group input {
+    width: 100%;
+    padding: 20px 14px;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    font-size: 15px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    box-sizing: border-box;
+}
+.input-group label {
+    position: absolute;
+    left: 10px;
+    top: 45%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 15px;
+    pointer-events: none;
+    transition: all 0.2s ease-out;
+    background-color: transparent;
+    padding: 0 4px;
+}
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+    top: 10px;
+    font-size: 10px;
+    color: #777;
+}
+
+.input-group select {
+    width: 100%;
+    padding: 20px 40px 20px 14px; /* 오른쪽 화살표 공간 */
+    font-size: 15px;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    box-sizing: border-box;
+    cursor: pointer;
+    color: #333;
+    background-color: #fff;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='14' height='8' viewBox='0 0 14 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%23999' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 14px 8px;
+
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-group select:focus {
+    border-color: #777;
+    box-shadow: 0 0 5px rgba(119, 119, 119, 0.4);
+    outline: none;
+}
+
+.input-group select:focus + label,
+.input-group select:not([value=""]):valid + label {
+    top: 10px;
+    font-size: 10px;
+    color: #777;
+}
+
+select {
+    width: 100%;
+    padding: 20px 14px;
+    border-radius: 15px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+    color: #333;
+    background-color: white;
+    appearance: none; /* 화살표 숨기기 */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23999" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+}
+
+select:focus {
+    border-color: #777;
+    box-shadow: 0 0 5px rgba(119, 119, 119, 0.4);
+    outline: none;
+}
+
+/* placeholder 역할 하는 option 색상 */
+option[disabled] {
+    color: #999;
+}
+
+.input-group input:focus, .input-group select:focus {
+    outline: none;
+    border-color: #777;
+    box-shadow: 0 0 5px rgba(119, 119, 119, 0.4);
+}
+.input-group input[type="date"] {
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    color: #555;
+}
+.input-row {
+    display: flex;
+    gap: 10px;
+}
+.input-row .input-group {
+    flex: 1;
+    margin-bottom: 20px;
+}
+.date-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #999;
+    pointer-events: none;
+    font-size: 15px;
+    transition: opacity 0.2s;
+}
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 55%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+.toggle-password:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.forgot-password {
+    display: block;
+    text-align: left;
+    margin-bottom: 25px;
+    font-size: 14px;
+    color: #666;
+    transition: color 0.3s;
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    color: #000;
+}
+
+.password-strength {
+    margin-top: 3px;
+    text-align: left;  /* 텍스트 중앙 정렬 문제 방지 */
+    width: 100%;
+}
+
+.strength-bar {
+    margin-left: 5px;
+    height: 6px;
+    border-radius: 4px;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-text {
+    margin-left: 5px;
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+.login-btn {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 15px;
+    transition: background-color 0.3s;
+    margin-bottom: 15px;
+}
+
+.login-btn:hover {
+    background-color: #444;
+}
+.login-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.signup {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.signup a {
+    color: #000;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.signup a:hover {
+    color: #444;
+}
+
+.checkbox-group {
+    font-size: 14px;
+    text-align: left;
+    margin-bottom: 20px;
+}
+.checkbox-group a {
+    color: #000;
+    text-decoration: none;
+}
+.checkbox-group a:hover {
+    color: #444;
+}
+
+.footer-right {
+    text-align: center;
+    font-size: 12px;
+    color: #777;
+    margin-top: 20px;
+}
+
+.alert {
+    padding: 14px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.alert.error {
+    background-color: #ffe5e5;
+    color: #b30000;
+    border: 1px solid #ffcccc;
+}
+
+.alert.success {
+    background-color: #e6ffed;
+    color: #006622;
+    border: 1px solid #b3ffcc;
+}
+
+.alert:hover {
+    filter: brightness(0.98);
+}
+
+.scope-list {
+    text-align: left;
+    margin: 20px 0;
+    border-top: 1px solid #e0e0e0;
+}
+
+.scope-list .scope-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+    margin: 0; /* 기존 input-group margin 제거 */
+}
+
+.scope-list .scope-item:last-child {
+    border-bottom: 1px solid #e0e0e0; /* 마지막 항목에도 구분선 유지 */
+}
+
+.scope-item .dot {
+    margin-right: 10px;
+    color: #000000;
+    font-weight: bold;
+}
+.consent-buttons .login-btn {
+    margin-bottom: 10px;
+}
+.consent-buttons .login-btn.deny {
+    background-color: #aaa;
+}
+.consent-buttons .login-btn.deny:hover {
+    background-color: #888;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .login-box {
+        padding: 30px;
+    }
+    h2 {
+        font-size: 1.5rem;
+    }
+    .input-group input, .login-btn {
+        font-size: 14px;
+        padding: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 20px;
+    }
+    h2 {
+        font-size: 1.3rem;
+    }
+    .logo img {
+        height: 60px;
+    }
+    .input-group input, .login-btn {
+        font-size: 13px;
+        padding: 12px;
+    }
+}

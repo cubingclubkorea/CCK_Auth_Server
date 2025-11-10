@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: Cubingclub_SSO_Server
+  datasource:
+    url: jdbc:mysql://localhost:3306/{YOUR_DB}?autoReconnect=true
+    username: {YOUR_DB_USERNAME}
+    password: {YOUR_DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+  oauth:
+    client:
+      uri: http://localhost:8080/oauth2/token
+      id: {YOUR_CLIENT_ID}
+      secret: {YOUR_CLIENT_SECRET}
+      redirect-uri: {YOUR_CLIENT_REDIRECT_URI}
+  mail:
+    api-key: {MAIL_API_KEY}
+  img:
+    path: {YOUR_PATH}
