@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCK Signup</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="container">
+    <div class="login-box">
+        <div class="logo">
+            <img src="images/logo.png" alt="Logo">
+        </div>
+        <h2>회원가입</h2>
+        <p>Cubing Club Korea에 오신 것을 환영합니다!</p>
+
+        <div class="input-group">
+            <input type="text" placeholder=" " id="name">
+            <label>이름</label>
+        </div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <input type="text" placeholder=" " id="enFirstName">
+                <label>영어 성</label>
+            </div>
+            <div class="input-group">
+                <input type="text" placeholder=" " id="enLastName">
+                <label>영어 이름</label>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <input type="email" placeholder=" " id="email">
+            <label>이메일</label>
+        </div>
+
+        <div class="input-group password">
+            <input type="password" id="password" placeholder=" ">
+            <label>비밀번호</label>
+            <span class="toggle-password" id="togglePassword">
+                <!-- Visibility 아이콘 -->
+                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </span>
+        </div>
+        <div class="password-strength">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <div class="strength-text" id="strengthText"></div>
+        </div>
+        <div class="input-group">
+            <input type="password" id="passwordCheck" placeholder=" ">
+            <label>비밀번호 확인</label>
+            <div id="passwordCheckError" style="color: #f44336; font-size: 12px; margin-top: 4px; display: none;"></div>
+        </div>
+
+        <div class="input-group" style="position: relative;">
+            <input type="date" id="birthdate" placeholder=" ">
+            <label>생년월일</label>
+        </div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <select name="region" id="region" required>
+                    <option value="" disabled selected></option>
+                    <option value="Seoul">서울특별시</option>
+                    <option value="Busan">부산광역시</option>
+                    <option value="Daegu">대구광역시</option>
+                    <option value="Incheon">인천광역시</option>
+                    <option value="Gwangju">광주광역시</option>
+                    <option value="Daejeon">대전광역시</option>
+                    <option value="Ulsan">울산광역시</option>
+                    <option value="Sejong">세종시</option>
+                    <option value="Gyeonggi-North">경기북부</option>
+                    <option value="Gyeonggi-South">경기남부</option>
+                    <option value="Gangwon">강원도</option>
+                    <option value="Chungbuk">충청북도</option>
+                    <option value="Chungnam">충청남도</option>
+                    <option value="Jeonbuk">전라북도</option>
+                    <option value="Jeonnam">전라남도</option>
+                    <option value="Gyeongbuk">경상북도</option>
+                    <option value="Gyeongnam">경상남도</option>
+                    <option value="Jeju">제주도</option>
+                    <option value="Foreign">Foreign</option>
+                </select>
+                <label for="region">지역</label>
+            </div>
+
+            <div class="input-group">
+                <select name="gender" id="gender" required>
+                    <option value="" disabled selected></option>
+                    <option value="Male">남성</option>
+                    <option value="Female">여성</option>
+                    <option value="Unknown">밝히지 않음</option>
+                </select>
+                <label for="gender">성별</label>
+            </div>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="terms">
+            <label for="terms">정책 및 약관에 동의합니다. <a href="#">정책 및 약관 보기</a></label>
+        </div>
+
+        <button class="login-btn" id="emailBtn" disabled>이메일 인증</button>
+
+        <div class="input-group" id="verifyGroup" style="display: none;">
+            <input type="text" id="verifyCode" placeholder=" ">
+            <label>인증 코드</label>
+        </div>
+
+        <div id="timer" style="display: none; font-size: 0.9em; color: red; margin-top: -5px; margin-bottom: 10px; text-align: left;">
+            남은 시간: 05:00
+        </div>
+
+        <button class="login-btn" id="signupBtn" disabled>회원가입</button>
+
+        <div class="signup">
+            <a th:href="@{/login}">로그인</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const emailBtn = document.getElementById('emailBtn');
+    const emailInput = document.getElementById('email');
+    const verifyGroup = document.getElementById('verifyGroup');
+    const signupBtn = document.getElementById('signupBtn');
+
+    // 이메일 형식 검증 (간단한 정규식)
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+    function checkEmailForAuth() {
+        const isValid = Boolean(emailInput.value.trim());
+        emailBtn.disabled = !isValid;
+    }
+    checkEmailForAuth();
+    emailInput.addEventListener('input', checkEmailForAuth);
+
+    const timerEl = document.getElementById('timer');
+
+    let timerInterval;
+    let remainingTime = 300; // 5분
+    function startTimer() {
+        clearInterval(timerInterval);
+        remainingTime = 300;
+        timerEl.style.display = 'block';
+        updateTimerDisplay();
+
+        timerInterval = setInterval(() => {
+            remainingTime--;
+            updateTimerDisplay();
+
+            if (remainingTime <= 0) {
+                clearInterval(timerInterval);
+                timerEl.textContent = '인증 시간이 만료되었습니다.';
+                reissueBtn.disabled = true;
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const minutes = String(Math.floor(remainingTime / 60)).padStart(2, '0');
+        const seconds = String(remainingTime % 60).padStart(2, '0');
+        timerEl.textContent = `남은 시간: ${minutes}:${seconds}`;
+    }
+
+    // 이메일 인증 버튼 클릭 시
+    emailBtn.addEventListener('click', async () => {
+        const email = emailInput.value.trim();
+        if (!isValidEmail(email)) {
+            alert("올바른 이메일 주소를 입력하세요.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/mail/send/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 409) {
+                    alert("이미 가입한 계정입니다. 로그인하세요.");
+                    window.location.href = '/login';
+                } else {
+                    throw new Error(`서버 오류: ${response.status}`);
+                }
+                return;
+            }
+            startTimer();
+            alert("인증 메일이 발송되었습니다.");
+            emailBtn.textContent = "이메일 재인증"; // 버튼 문구 변경
+            verifyGroup.style.display = 'block'; // 인증 코드 입력창 보이기
+
+        } catch (error) {
+            console.error(error);
+            alert("이메일 전송에 실패했습니다.");
+        }
+    });
+
+    signupBtn.addEventListener('click', async () => {
+        // 입력값 가져오기
+        const email = document.getElementById('email').value.trim();
+        const name = document.getElementById('name').value.trim();
+        const enFirstName = document.getElementById('enFirstName').value.replace(/\s+/g, '');
+        const enLastName = document.getElementById('enLastName').value.replace(/\s+/g, '');
+        const password = document.getElementById('password').value;
+        const passwordCheck = document.getElementById('passwordCheck').value;
+        const birthDate = document.getElementById('birthdate').value;
+        const state = document.getElementById('region').value;
+        const gender = document.getElementById('gender').value;
+        const authNum = document.getElementById('verifyCode').value.trim();
+        const enName=`${enLastName} ${enFirstName}`.trim();
+        // 요청 바디 생성
+        const data = {
+            email,
+            name,
+            enName,
+            password,
+            passwordCheck,
+            birthDate,
+            state,
+            gender,
+            authNum
+        };
+
+        if (remainingTime <= 0) {
+            alert('인증 시간이 만료되었습니다. 다시 인증해주세요.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/join', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                if (response.status === 400) {
+                    alert("인증코드가 틀립니다.");
+                } else {
+                    throw new Error(`서버 오류: ${response.status}`);
+                }
+                return;
+            }
+
+            alert('회원가입이 완료되었습니다!');
+            // 회원가입 완료 후 리다이렉트 등
+            window.location.href = '/login';
+
+        } catch (err) {
+            console.error(err);
+            alert('서버와 통신 중 오류가 발생했습니다.');
+        }
+    });
+    // has number
+    const hasNumber = (str) => /[0-9]/.test(str);
+    // has mix of small and capitals
+    const hasMixed = (str) => /[a-z]/.test(str) && /[A-Z]/.test(str);
+    // has special chars
+    const hasSpecial = (str) => /[!#@$%^&*)(+=._-]/.test(str);
+
+    // set color based on password strength
+    const strengthColor = (count) => {
+        if (count < 2) return { label: 'Poor', color: '#f44336' }; // errorMain
+        if (count < 3) return { label: 'Weak', color: '#ff9800' }; // warningDark
+        if (count < 4) return { label: 'Normal', color: '#ff5722' }; // orangeMain
+        if (count < 5) return { label: 'Good', color: '#4caf50' }; // successMain
+        if (count < 6) return { label: 'Strong', color: '#2e7d32' }; // successDark
+        return { label: 'Poor', color: '#f44336' };
+    };
+
+    // password strength indicator
+    const strengthIndicator = (str) => {
+        let strengths = 0;
+        if (str.length > 8) strengths += 1;
+        if (str.length > 10) strengths += 1;
+        if (hasNumber(str)) strengths += 1;
+        if (hasSpecial(str)) strengths += 1;
+        if (hasMixed(str)) strengths += 1;
+        return strengths;
+    };
+
+    const passwordInput = document.getElementById('password');
+    const strengthFill = document.getElementById('strengthFill');
+    const strengthText = document.getElementById('strengthText');
+    const togglePassword = document.getElementById('togglePassword');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    passwordInput.addEventListener('input', () => {
+        const val = passwordInput.value;
+        const strengthVal = strengthIndicator(val);
+        const { label, color } = strengthColor(strengthVal);
+
+        strengthFill.style.width = ((strengthVal) / 5) * 98 + '%';
+        strengthFill.style.backgroundColor = color;
+        strengthText.textContent = label;
+        strengthText.style.color = color;
+    });
+
+    togglePassword.addEventListener('click', () => {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+
+        // 아이콘 변경
+        eyeIcon.innerHTML = isPassword
+            ? '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.16 21.16 0 0 1 5.06-5.94M1 1l22 22"/>' // 숨김 스타일
+            : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    });
+    const allInputs = document.querySelectorAll('input, select');
+
+    function checkFormFilled() {
+        let allFilled = true;
+        allInputs.forEach(input => {
+            if (!input.value.trim()) {
+                allFilled = false;
+            }
+        });
+
+        // 약관 체크박스가 체크되어 있어야 함
+        const termsChecked = document.getElementById('terms').checked;
+        if (!termsChecked) allFilled = false;
+
+        const passwordVal = passwordInput.value;
+        const passwordCheckVal = document.getElementById('passwordCheck').value;
+        const passwordCheckError = document.getElementById('passwordCheckError');
+
+        if (passwordCheckVal && passwordVal !== passwordCheckVal) {
+            passwordCheckError.textContent = "비밀번호가 일치하지 않습니다.";
+            passwordCheckError.style.display = "block";
+            allFilled = false;  // 일치하지 않으면 가입 버튼 비활성화
+        } else {
+            passwordCheckError.textContent = "";
+            passwordCheckError.style.display = "none";
+        }
+
+        signupBtn.disabled = !allFilled;
+    }
+
+    passwordInput.addEventListener('input', checkFormFilled);
+    document.getElementById('passwordCheck').addEventListener('input', checkFormFilled);
+
+    document.getElementById('terms').addEventListener('change', checkFormFilled);
+
+    allInputs.forEach(input => {
+        input.addEventListener('input', checkFormFilled);
+        input.addEventListener('change', checkFormFilled); // select 변화를 감지
+    });
+
+    // 초기 상태 체크
+    checkFormFilled();
+
+
+</script>
+</body>
+</html>

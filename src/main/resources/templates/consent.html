@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCK 권한 승인</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <div class="logo">
+                <img src="images/logo.png" alt="Ranking Logo">
+            </div>
+            <h2>앱 권한 승인</h2>
+            <p>
+                <strong th:text="${clientName}"></strong> 에서 <strong th:text="${principalName}"></strong>계정에 대해 다음 권한을 요청합니다.
+            </p>
+
+            <form th:action="@{/oauth2/authorize}" method="post" id="consentForm">
+                <input type="hidden" name="client_id" th:value="${clientId}" />
+                <input type="hidden" name="state" th:value="${state}" />
+                <input type="hidden" name="redirect_uri" th:value="${redirectUri}" />
+
+                <div class="scope-list">
+                    <div th:each="scope : ${scopes}" class="input-group scope-item" th:if="${scope.scope != 'openid'}">
+                        <span class="dot">•</span>
+                        <span th:text="${scope.scope} + ' : ' + ${scope.description}"></span>
+                        <input type="hidden" name="scope" th:value="${scope.scope}" th:id="${scope.scope}">
+                    </div>
+                </div>
+
+                <div class="consent-buttons">
+                    <button type="submit" name="action" value="approve" class="login-btn">승인</button>
+                    <button type="button" name="action" value="deny" class="login-btn deny" onclick="deny()">거부</button>
+                </div>
+            </form>
+
+            <div class="footer-right">© CubingClubKorea. All Rights Reserved</div>
+        </div>
+    </div>
+
+</body>
+<script>
+    function deny() {
+        const form = document.getElementById("consentForm");
+        const actionUrl = new URL(form.getAttribute("action"), window.location.origin);
+
+        window.location.href = actionUrl.toString() + "?error=access_denied";
+    }
+</script>
+</html>
