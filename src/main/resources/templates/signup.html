@@ -178,7 +178,7 @@
         }
 
         try {
-            const response = await fetch('/api/mail/send/signup', {
+            const response = await fetch('/issue/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -238,7 +238,7 @@
         }
 
         try {
-            const response = await fetch('/api/auth/join', {
+            const response = await fetch('/join', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

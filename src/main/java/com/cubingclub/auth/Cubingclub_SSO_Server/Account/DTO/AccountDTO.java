@@ -41,10 +41,4 @@ public class AccountDTO {
         this.cckId=entity.getCckId();
         this.phoneNum=entity.getPhoneNum();
     }
-    public static AccountDTO from(Account entity) {
-        if (entity == null) {
-            return null;
-        }
-        return new AccountDTO(entity);
-    }
 }

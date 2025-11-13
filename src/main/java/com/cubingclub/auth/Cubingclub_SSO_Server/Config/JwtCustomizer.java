@@ -1,6 +1,7 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.Config;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
@@ -29,14 +30,7 @@ public class JwtCustomizer implements OAuth2TokenCustomizer<JwtEncodingContext> 
             Authentication authentication = context.getPrincipal();
             if (authentication != null && authentication.getAuthorities() != null) {
                 List<String> roles = authentication.getAuthorities().stream()
-                        .map(grantedAuthority -> {
-                            String role = grantedAuthority.getAuthority();
-                            // 접두사 "ROLE_"가 없으면 붙이고, 있으면 그대로 리턴
-                            if (!role.startsWith("ROLE_")) {
-                                return "ROLE_" + role;
-                            }
-                            return role;
-                        })
+                        .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toList());
 
                 context.getClaims().claim("roles", roles);

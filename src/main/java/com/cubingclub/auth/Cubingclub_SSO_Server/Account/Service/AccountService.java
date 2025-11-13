@@ -21,11 +21,10 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final BCryptPasswordEncoder encoder;
 
-    public String generateCckId(String enName) {
+    private String generateCckId(String enName) {
         String cckIdMid = reorderAndUpperFirst4(enName);
         String cckIdFront = "CCK" + getYearSuffix() + cckIdMid;
         int backNum=accountRepository.findBiggestNum(cckIdFront).orElse(0);
-        log.info(String.valueOf(backNum));
         String countStr = String.format("%02d", backNum + 1);
 
         return cckIdFront + countStr;
@@ -87,14 +86,8 @@ public class AccountService {
             }
         }
     }
-    public AccountDTO getAccountInfo(String email){
-        return new AccountDTO(accountRepository.findByEmail(email).get());
-    }
     public AccountDTO getAccountInfoWithCCKId(String cckId){
         return new AccountDTO(accountRepository.findByCckId(cckId).get());
-    }
-    public MaskedAccountDTO getMaskedAccountInfoWithCCKId(String cckId){
-        return new MaskedAccountDTO(accountRepository.findByCckId(cckId).get());
     }
 
     public boolean updatePassword(String email, String password){
