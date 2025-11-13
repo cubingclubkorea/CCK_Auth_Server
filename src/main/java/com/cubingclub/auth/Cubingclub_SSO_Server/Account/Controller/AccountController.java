@@ -5,6 +5,7 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountEditDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountJoinDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service.AccountService;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service.IssueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,34 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AccountController {
     private final AccountService accountService;
-    @Value("${spring.oauth.client.uri}")
-    private String tokenUrl;
-    @Value("${spring.oauth.client.id}")
-    private String clientId;
-    @Value("${spring.oauth.client.secret}")
-    private String clientSecret;
-    @Value("${spring.oauth.client.redirect-uri}")
-    private String clientRedirect;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    @PostMapping("/token")
-    public ResponseEntity<?> ExchangeTokenForRanking(@RequestParam(name = "code")String code){
-        HttpHeaders headers=new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setBasicAuth(clientId, clientSecret);
-
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("grant_type", "authorization_code");
-        body.add("code", code);
-        body.add("redirect_uri", clientRedirect);
-
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
-
-        return ResponseEntity.ok(response.getBody());
-    }
+    private final IssueService issueService;
     @PostMapping("/join")
     public ResponseEntity<?> AddJoin(@Valid @RequestBody AccountJoinDTO accountJoinDTO){
         try {
@@ -65,6 +39,9 @@ public class AccountController {
             }
             if (!accountJoinDTO.getPassword().equals(accountJoinDTO.getPasswordCheck())){
                 return ResponseEntity.badRequest().body("Password check incorrect");
+            }
+            if (!issueService.CheckAuthNum(accountJoinDTO.getEmail(), accountJoinDTO.getAuthNum())){
+                return ResponseEntity.badRequest().body("AuthNum verify failed");
             }
             Account account=accountService.join(accountJoinDTO);
             return ResponseEntity.ok().body(account);
