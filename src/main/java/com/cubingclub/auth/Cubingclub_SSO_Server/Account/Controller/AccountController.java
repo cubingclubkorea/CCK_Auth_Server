@@ -4,6 +4,7 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountEditDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountJoinDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.InfoType;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service.AccountService;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service.IssueService;
 import jakarta.validation.Valid;
@@ -67,7 +68,7 @@ public class AccountController {
         }
     }
     @GetMapping("/info")
-    public ResponseEntity<?> Info(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<?> GetMyInfo(@AuthenticationPrincipal Jwt jwt) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         try{
             AccountDTO accountDTO=accountService.getAccountInfoWithCCKId(authentication.getName());
@@ -87,4 +88,14 @@ public class AccountController {
             return ResponseEntity.badRequest().body(e);
         }
     }
+    @GetMapping("/normal-info")
+    public ResponseEntity<?> getNormalInfo(
+            @RequestParam InfoType type,
+            @RequestParam(required = false) String cckId
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object result = accountService.getNormalInfo(type, cckId, authentication.getName());
+        return ResponseEntity.ok(result);
+    }
 }
+

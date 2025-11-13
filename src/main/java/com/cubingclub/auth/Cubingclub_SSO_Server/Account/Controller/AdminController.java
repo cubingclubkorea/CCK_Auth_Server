@@ -20,7 +20,7 @@ import java.time.LocalDate;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/admin")
+@RequestMapping("/admin")
 public class AdminController {
     private final AccountService accountService;
     private final AdminService adminService;

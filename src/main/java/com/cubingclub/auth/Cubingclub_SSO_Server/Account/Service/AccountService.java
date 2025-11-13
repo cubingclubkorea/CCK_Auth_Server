@@ -2,6 +2,7 @@ package com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service;
 
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.*;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.InfoType;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.UserRole;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
 import jakarta.transaction.Transactional;
@@ -101,5 +102,32 @@ public class AccountService {
 
     public List<AccountListDTO> findBySearchTerm(String searchTerm){
         return accountRepository.findByName(searchTerm);
+    }
+
+    public Object getNormalInfo(InfoType type, String cckId, String email) {
+
+        boolean isSelf = (cckId == null);
+
+        return switch (type) {
+            case judge -> isSelf
+                    ? findJudgeByEmail(email)
+                    : findJudgeByCckId(cckId);
+            case player -> isSelf
+                    ? findPlayerByEmail(email)
+                    : findPlayerByCckId(cckId);
+        };
+
+    }
+    public JudgeInfo findJudgeByEmail(String email){
+        return new JudgeInfo(accountRepository.findByEmail(email).orElseThrow());
+    }
+    public JudgeInfo findJudgeByCckId(String cckId){
+        return new JudgeInfo(accountRepository.findByCckId(cckId).orElseThrow());
+    }
+    public PlayerInfo findPlayerByEmail(String email){
+        return new PlayerInfo(accountRepository.findByEmail(email).orElseThrow());
+    }
+    public PlayerInfo findPlayerByCckId(String cckId){
+        return new PlayerInfo(accountRepository.findByCckId(cckId).orElseThrow());
     }
 }
