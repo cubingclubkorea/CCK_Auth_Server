@@ -25,7 +25,7 @@ import java.util.UUID;
 public class RsaKeysService {
     private final RsaKeysRepository rsaKeysRepository;
 
-    public RsaKeys saveRsaKeys(String identifier){
+    public void saveRsaKeys(String identifier){
         KeyPair keyPair=generateRsaKey();
         RSAPublicKey publicKey=(RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey=(RSAPrivateKey) keyPair.getPrivate();
@@ -37,7 +37,7 @@ public class RsaKeysService {
                 .privateKey(Base64.getEncoder().encodeToString(privateKey.getEncoded()))
                 .build();
 
-        return rsaKeysRepository.save(rsaKeys);
+        rsaKeysRepository.save(rsaKeys);
     }
 
     public ImmutableJWKSet<SecurityContext> loadByJwkSet(String identifier) throws NoSuchAlgorithmException, InvalidKeySpecException{
