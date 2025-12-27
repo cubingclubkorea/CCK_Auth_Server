@@ -23,7 +23,6 @@ public class JwtCustomizer implements OAuth2TokenCustomizer<JwtEncodingContext> 
     }
     @Override
     public void customize(JwtEncodingContext context) {
-        // Token Type AT Only (Access Token) Customization
         if(context.getTokenType().getValue().equals("access_token")) {
             context.getClaims().claim("user_host", returnClientId());
 

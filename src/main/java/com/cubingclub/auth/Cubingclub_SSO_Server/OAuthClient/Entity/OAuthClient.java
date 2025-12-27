@@ -42,7 +42,7 @@ public class OAuthClient {
     @Column
     private String postLogoutRedirectUri;
     @Builder.Default
-    @OneToMany(mappedBy = "oAuthClient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "oauthClient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OAuthScopes> scopes = new ArrayList<>();
     @Column
     private boolean requireAuthorizationConsent;
