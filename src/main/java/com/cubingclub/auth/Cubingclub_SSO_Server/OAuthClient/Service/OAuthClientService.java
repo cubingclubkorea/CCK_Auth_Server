@@ -179,7 +179,7 @@ public class OAuthClientService {
             if(oAuthClientRequestDTO.getScopes()!=null) {
                 for (String s : oAuthClientRequestDTO.getScopes()) {
                     OAuthScopes scope = OAuthScopes.builder()
-                            .oAuthClient(client)
+                            .oauthClient(client)
                             .scope(s)
                             .build();
                     client.getScopes().add(scope);
