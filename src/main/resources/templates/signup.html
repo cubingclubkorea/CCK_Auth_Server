@@ -169,6 +169,15 @@
         timerEl.textContent = `남은 시간: ${minutes}:${seconds}`;
     }
 
+    // CSRF 토큰 가져오기 함수
+    function getCsrfToken() {
+        const token = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+        return token ? decodeURIComponent(token) : null;
+    }
+
     // 이메일 인증 버튼 클릭 시
     emailBtn.addEventListener('click', async () => {
         const email = emailInput.value.trim();
@@ -178,11 +187,17 @@
         }
 
         try {
+            const csrfToken = getCsrfToken();
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (csrfToken) {
+                headers['X-XSRF-TOKEN'] = csrfToken;
+            }
+
             const response = await fetch('/issue/signup', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify({ email }),
             });
 
@@ -238,11 +253,17 @@
         }
 
         try {
+            const csrfToken = getCsrfToken();
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (csrfToken) {
+                headers['X-XSRF-TOKEN'] = csrfToken;
+            }
+
             const response = await fetch('/join', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify(data),
             });
 

@@ -27,7 +27,7 @@ public class RFIDService {
         }
     }
     public JudgeInfo getJudgeInfo(String uid){
-        return rfidRepository.findByUid(uid)
+        return rfidRepository.findByUidWithAccount(uid)
                 .map(rfid -> new JudgeInfo(rfid.getAccount()))
                 .orElse(null);
     }
