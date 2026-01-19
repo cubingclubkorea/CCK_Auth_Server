@@ -9,9 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class PlayerInfo {
-    String name;
-    String state;
-    String cckId;
+    private String name;
+    private String state;
+    private String cckId;
 
     public PlayerInfo(Account entity){
         this.name=entity.getName();

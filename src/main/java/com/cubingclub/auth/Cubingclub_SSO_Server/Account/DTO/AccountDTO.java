@@ -17,18 +17,27 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AccountDTO {
-    @NotBlank
     private String email;
+
     private String name;
+
     private String enName;
+
     @DateTimeFormat(pattern="yyyy-MM-dd")
     private LocalDate birthDate;
+
     private UserRole position;
+
     private String state;
+
     private Gender gender;
+
     private String cckId;
+
     private String wcaId;
+
     private String phoneNum;
+
     public AccountDTO(Account entity){
         this.email=entity.getEmail();
         this.name=entity.getName();

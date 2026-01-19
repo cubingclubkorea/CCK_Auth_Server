@@ -2,25 +2,28 @@ package com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service;
 
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.*;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
-import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.InfoType;
-import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.UserRole;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
 public class AccountService {
     private final AccountRepository accountRepository;
     private final BCryptPasswordEncoder encoder;
+    private final AuthNumberService authNumberService;  // IssueService 대신 AuthNumberService만 사용
 
     private String generateCckId(String enName) {
         String cckIdMid = reorderAndUpperFirst4(enName);
@@ -52,83 +55,72 @@ public class AccountService {
     }
 
     public boolean checkEmailDuplicate(String email){
-        return accountRepository.existsByEmail(email);
+        return accountRepository.existsById(email);
     }
-    public Account join(AccountJoinDTO accountJoinDTO){
+
+    public void join(AccountJoinDTO accountJoinDTO){
         String cckId=generateCckId(accountJoinDTO.getEnName());
         accountJoinDTO.setCckId(cckId);
-        return accountRepository.save(accountJoinDTO.toEntity(encoder.encode(accountJoinDTO.getPassword())));
+        if (checkEmailDuplicate(accountJoinDTO.getEmail())) {
+            throw new CustomizedException(ErrorCode.USER_ALREADY_EXIST);
+        }
+        if (accountJoinDTO.getPassword().length() < 8 || accountJoinDTO.getPassword().length() > 16) {
+            throw new CustomizedException(ErrorCode.USER_PASSWORD_FORMAT_INCORRECT);
+        }
+        if (!accountJoinDTO.getPassword().equals(accountJoinDTO.getPasswordCheck())){
+            throw new CustomizedException(ErrorCode.USER_PASSWORD_CHECK_INCORRECT);
+        }
+        if (!authNumberService.verify(accountJoinDTO.getEmail(), accountJoinDTO.getAuthNum())){
+            throw new CustomizedException(ErrorCode.USER_AUTH_NUMBER_INCORRECT);
+        }
+        accountRepository.save(accountJoinDTO.toEntity(encoder.encode(accountJoinDTO.getPassword())));
     }
-    public UserRole getUserRole(String email){
-        return accountRepository.findByEmail(email).get().getPosition();
-    }
-    public UserRole getUserRoleWithCCKId(String cckId){
-        return accountRepository.findByCckId(cckId).get().getPosition();
-    }
-    public int updateUser(AccountEditDTO accountEditDTO){
-        Optional<Account> account=accountRepository.findByCckId(accountEditDTO.getCckId());
 
-        if(account.isEmpty()){
-            return -1;
+    public void edit(AccountEditDTO accountEditDTO) {
+        String cckId = SecurityContextHolder.getContext().getAuthentication().getName();
+        Account account = accountRepository.findByCckId(cckId)
+                .orElseThrow(() -> new CustomizedException(ErrorCode.USER_NOT_FOUND));
+
+        if (!encoder.matches(accountEditDTO.getPassword(), account.getPassword())) {
+            throw new CustomizedException(ErrorCode.USER_PASSWORD_INCORRECT);
         }
-        if(!encoder.matches(accountEditDTO.getPassword(), account.get().getPassword())){
-            return -1;
+
+        // 상태 정보 변경 (JPA 변경 감지)
+        if (accountEditDTO.getState() != null) {
+            account.updateState(accountEditDTO.getState());
         }
-        if(accountEditDTO.getNewPassword()==null){
-            accountRepository.updateAccountInfo(accountEditDTO.getState(), accountEditDTO.getCckId());
-            return 0;
-        }
-        else{
-            if(accountEditDTO.getNewPassword().equals(accountEditDTO.getNewPasswordCheck())) {
-                accountRepository.updateAccountPassword(encoder.encode(accountEditDTO.getNewPassword()), accountEditDTO.getCckId());
-                return 0;
+
+        // 비밀번호 변경 (JPA 변경 감지)
+        if (accountEditDTO.getNewPassword() != null) {
+            if (!accountEditDTO.getNewPassword().equals(accountEditDTO.getNewPasswordCheck())) {
+                throw new CustomizedException(ErrorCode.USER_PASSWORD_CHECK_INCORRECT);
             }
-            else{
-                return 1;
+            account.updatePassword(encoder.encode(accountEditDTO.getNewPassword()));
+        }
+    }
+
+    public AccountDTO getAccountInfo(Jwt jwt){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try{
+            AccountDTO accountDTO=new AccountDTO(accountRepository.findByCckId(authentication.getName()).orElseThrow(()->new CustomizedException(ErrorCode.USER_NOT_FOUND)));
+            List<String> scopes = jwt.getClaimAsStringList("scope");
+            if(!scopes.contains("profile")){
+                throw new CustomizedException(ErrorCode.USER_SCOPE_FORBIDDEN);
             }
+            if(!scopes.contains("email")){
+                accountDTO.setEmail(null);
+            }
+            if(!scopes.contains("phone")){
+                accountDTO.setPhoneNum(null);
+            }
+            return accountDTO;
+        }
+        catch(Exception e){
+            throw new CustomizedException(ErrorCode.USER_JWT_INVALID);
         }
     }
-    public AccountDTO getAccountInfoWithCCKId(String cckId){
-        return new AccountDTO(accountRepository.findByCckId(cckId).get());
-    }
 
-    public boolean updatePassword(String email, String password){
-        if(accountRepository.existsByEmail(email)){
-            String cckId=accountRepository.findByEmail(email).orElseThrow().getCckId();
-            accountRepository.updateAccountPassword(encoder.encode(password), cckId);
-            return true;
-        }
-        return false;
-    }
-
-    public List<AccountListDTO> findBySearchTerm(String searchTerm){
-        return accountRepository.findByName(searchTerm);
-    }
-
-    public Object getNormalInfo(InfoType type, String cckId, String email) {
-
-        boolean isSelf = (cckId == null);
-
-        return switch (type) {
-            case judge -> isSelf
-                    ? findJudgeByEmail(email)
-                    : findJudgeByCckId(cckId);
-            case player -> isSelf
-                    ? findPlayerByEmail(email)
-                    : findPlayerByCckId(cckId);
-        };
-
-    }
-    public JudgeInfo findJudgeByEmail(String email){
-        return new JudgeInfo(accountRepository.findByEmail(email).orElseThrow());
-    }
-    public JudgeInfo findJudgeByCckId(String cckId){
-        return new JudgeInfo(accountRepository.findByCckId(cckId).orElseThrow());
-    }
-    public PlayerInfo findPlayerByEmail(String email){
-        return new PlayerInfo(accountRepository.findByEmail(email).orElseThrow());
-    }
-    public PlayerInfo findPlayerByCckId(String cckId){
-        return new PlayerInfo(accountRepository.findByCckId(cckId).orElseThrow());
+    public PlayerInfo getNormalInfo(String cckId) {
+        return new PlayerInfo(accountRepository.findByCckId(cckId).orElseThrow(()->new CustomizedException(ErrorCode.USER_NOT_FOUND)));
     }
 }

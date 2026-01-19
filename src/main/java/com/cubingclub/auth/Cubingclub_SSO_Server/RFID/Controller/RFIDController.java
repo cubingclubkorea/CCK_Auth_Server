@@ -13,8 +13,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/rfid")
 public class RFIDController {
     private final RFIDService rfidService;
+
     @GetMapping("/info")
-    public ResponseEntity<?> GetJudgeInfo(@RequestBody RFIDDTO rfidDTO){
-        return ResponseEntity.ok(rfidService.getJudgeInfo(rfidDTO.getUid()));
+    public ResponseEntity<?> getPlayerInfo(@RequestBody RFIDDTO rfidDTO){
+        return ResponseEntity.ok(rfidService.getPlayerInfo(rfidDTO.getUid()));
     }
 }

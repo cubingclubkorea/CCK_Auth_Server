@@ -29,7 +29,8 @@ public class OAuthClientInfoDTO {
     private LocalDateTime clientSecretExpiresAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private boolean isActive;
+    private Boolean isActive;
+
     public OAuthClientInfoDTO(OAuthClient entity){
         this.id=entity.getId();
         this.clientId=entity.getClientId();

@@ -1,6 +1,8 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service;
 
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.MailSendDTO;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +15,6 @@ import org.springframework.web.client.RestTemplate;
 @Service
 @RequiredArgsConstructor
 public class MailAsyncService {
-
     @Value("${spring.mail.url}")
     private String mailUrl;
 
@@ -32,10 +33,9 @@ public class MailAsyncService {
             MailSendDTO dto = new MailSendDTO(email, title, content);
             HttpEntity<MailSendDTO> request = new HttpEntity<>(dto, headers);
 
-            // 비동기로 호출 — 블로킹이지만 별도 스레드에서 동작
             restTemplate.postForEntity(mailUrl, request, String.class);
         } catch (Exception e) {
-            log.info(e.getMessage());
+            throw new CustomizedException(ErrorCode.MAIL_FAILED, e.getMessage());
         }
     }
 }

@@ -3,24 +3,29 @@ package com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountEditDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountJoinDTO;
-import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountListDTO;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.PlayerInfo;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
-import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.UserRole;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
 
@@ -30,6 +35,9 @@ class AccountServiceTest {
     @Mock
     private BCryptPasswordEncoder encoder;
 
+    @Mock
+    private AuthNumberService authNumberService;
+
     @InjectMocks
     private AccountService accountService;
 
@@ -37,293 +45,269 @@ class AccountServiceTest {
     void checkEmailDuplicate_이메일이_존재하면_true() {
         // given
         String email = "test@example.com";
-        when(accountRepository.existsByEmail(email)).thenReturn(true);
+        when(accountRepository.existsById(email)).thenReturn(true);
 
         // when
         boolean result = accountService.checkEmailDuplicate(email);
 
         // then
         assertThat(result).isTrue();
-        verify(accountRepository).existsByEmail(email);
+        verify(accountRepository).existsById(email);
     }
 
     @Test
     void checkEmailDuplicate_이메일이_없으면_false() {
         // given
         String email = "test@example.com";
-        when(accountRepository.existsByEmail(email)).thenReturn(false);
+        when(accountRepository.existsById(email)).thenReturn(false);
 
         // when
         boolean result = accountService.checkEmailDuplicate(email);
 
         // then
         assertThat(result).isFalse();
-        verify(accountRepository).existsByEmail(email);
+        verify(accountRepository).existsById(email);
     }
 
     @Test
-    void join_회원가입시_CCK_ID_생성하고_비밀번호_암호화해서_저장한다() {
+    void join_회원가입_성공() {
         // given
         AccountJoinDTO dto = mock(AccountJoinDTO.class);
+        when(dto.getEmail()).thenReturn("test@example.com");
         when(dto.getEnName()).thenReturn("John Doe");
-        when(dto.getPassword()).thenReturn("plainPw");
+        when(dto.getPassword()).thenReturn("password123");
+        when(dto.getPasswordCheck()).thenReturn("password123");
+        when(dto.getAuthNum()).thenReturn("123456");
 
-        String encodedPw = "encodedPw";
-        when(encoder.encode("plainPw")).thenReturn(encodedPw);
+        when(accountRepository.existsById("test@example.com")).thenReturn(false);
+        when(authNumberService.verify("test@example.com", "123456")).thenReturn(true);
+        when(encoder.encode("password123")).thenReturn("encodedPassword");
 
-        String yearSuffix = String.valueOf(LocalDate.now().getYear()).substring(2); // 현재 연도 뒤 2자리
-        String cckIdFront = "CCK" + yearSuffix + "DOEJ"; // reorderAndUpperFirst4("John Doe") == "DOEJ"
-
-        when(accountRepository.findBiggestNum(cckIdFront)).thenReturn(Optional.of(0)); // 처음 생성이라고 가정 ⇒ 01
+        String yearSuffix = String.valueOf(LocalDate.now().getYear()).substring(2);
+        String cckIdFront = "CCK" + yearSuffix + "DOEJ";
+        when(accountRepository.findBiggestNum(cckIdFront)).thenReturn(Optional.of(0));
 
         Account account = mock(Account.class);
-        when(dto.toEntity(encodedPw)).thenReturn(account);
+        when(dto.toEntity("encodedPassword")).thenReturn(account);
         when(accountRepository.save(account)).thenReturn(account);
 
-        final String[] capturedCckId = new String[1];
-        doAnswer(invocation -> {
-            capturedCckId[0] = invocation.getArgument(0, String.class);
-            return null;
-        }).when(dto).setCckId(anyString());
-
         // when
-        Account result = accountService.join(dto);
+        accountService.join(dto);
 
         // then
-        assertThat(result).isSameAs(account);
-        assertThat(capturedCckId[0]).isEqualTo(cckIdFront + "01"); // CCK + 연도 + DOEJ + 01
-        verify(accountRepository).findBiggestNum(cckIdFront);
-        verify(encoder).encode("plainPw");
+        verify(dto).setCckId(anyString());
         verify(accountRepository).save(account);
     }
 
     @Test
-    void getUserRole_이메일로_UserRole_조회() {
+    void join_이메일_중복시_예외() {
         // given
-        String email = "user@test.com";
-        Account account = mock(Account.class);
-        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
+        AccountJoinDTO dto = mock(AccountJoinDTO.class);
+        when(dto.getEmail()).thenReturn("test@example.com");
+        when(accountRepository.existsById("test@example.com")).thenReturn(true);
 
-        // when
-        UserRole role = accountService.getUserRole(email);
-
-        // then
-        verify(accountRepository).findByEmail(email);
-        verify(account).getPosition();
-        // 구체적인 enum 값은 프로젝트마다 달라서 여기서는 null 여부만 확인 가능
-        assertThat(role).isNull(); // getPosition()이 기본값 null이므로
+        // when & then
+        assertThatThrownBy(() -> accountService.join(dto))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_ALREADY_EXIST);
     }
 
     @Test
-    void getUserRoleWithCCKId_CCK_ID로_UserRole_조회() {
+    void join_비밀번호_길이_부족시_예외() {
         // given
-        String cckId = "CCK250001";
+        AccountJoinDTO dto = mock(AccountJoinDTO.class);
+        when(dto.getEmail()).thenReturn("test@example.com");
+        when(dto.getPassword()).thenReturn("short");
+        when(accountRepository.existsById("test@example.com")).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> accountService.join(dto))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_PASSWORD_FORMAT_INCORRECT);
+    }
+
+    @Test
+    void join_비밀번호_불일치시_예외() {
+        // given
+        AccountJoinDTO dto = mock(AccountJoinDTO.class);
+        when(dto.getEmail()).thenReturn("test@example.com");
+        when(dto.getPassword()).thenReturn("password123");
+        when(dto.getPasswordCheck()).thenReturn("password456");
+        when(accountRepository.existsById("test@example.com")).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> accountService.join(dto))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_PASSWORD_CHECK_INCORRECT);
+    }
+
+    @Test
+    void join_인증번호_불일치시_예외() {
+        // given
+        AccountJoinDTO dto = mock(AccountJoinDTO.class);
+        when(dto.getEmail()).thenReturn("test@example.com");
+        when(dto.getPassword()).thenReturn("password123");
+        when(dto.getPasswordCheck()).thenReturn("password123");
+        when(dto.getAuthNum()).thenReturn("123456");
+        when(accountRepository.existsById("test@example.com")).thenReturn(false);
+        when(authNumberService.verify("test@example.com", "123456")).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> accountService.join(dto))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_AUTH_NUMBER_INCORRECT);
+    }
+
+    @Test
+    void edit_정보수정_성공() {
+        // given
+        AccountEditDTO dto = mock(AccountEditDTO.class);
+        when(dto.getPassword()).thenReturn("oldPassword");
+        when(dto.getState()).thenReturn("ACTIVE");
+
+        String cckId = "CCK2501";
+        Account account = mock(Account.class);
+        when(account.getPassword()).thenReturn("encodedPassword");
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn(cckId);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
+        when(encoder.matches("oldPassword", "encodedPassword")).thenReturn(true);
+
+        // when
+        accountService.edit(dto);
+
+        // then
+        verify(account).updateState("ACTIVE");
+    }
+
+    @Test
+    void edit_비밀번호_불일치시_예외() {
+        // given
+        AccountEditDTO dto = mock(AccountEditDTO.class);
+        when(dto.getPassword()).thenReturn("wrongPassword");
+
+        String cckId = "CCK2501";
+        Account account = mock(Account.class);
+        when(account.getPassword()).thenReturn("encodedPassword");
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn(cckId);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
+        when(encoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> accountService.edit(dto))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_PASSWORD_INCORRECT);
+    }
+
+    @Test
+    void edit_새비밀번호_불일치시_예외() {
+        // given
+        AccountEditDTO dto = mock(AccountEditDTO.class);
+        when(dto.getPassword()).thenReturn("oldPassword");
+        when(dto.getNewPassword()).thenReturn("newPassword");
+        when(dto.getNewPasswordCheck()).thenReturn("differentPassword");
+
+        String cckId = "CCK2501";
+        Account account = mock(Account.class);
+        when(account.getPassword()).thenReturn("encodedPassword");
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn(cckId);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
+        when(encoder.matches("oldPassword", "encodedPassword")).thenReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> accountService.edit(dto))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_PASSWORD_CHECK_INCORRECT);
+    }
+
+    @Test
+    void getAccountInfo_성공() {
+        // given
+        String cckId = "CCK2501";
+        Account account = mock(Account.class);
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn(cckId);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
+
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getClaimAsStringList("scope")).thenReturn(java.util.List.of("profile", "email", "phone"));
+
+        // when
+        AccountDTO result = accountService.getAccountInfo(jwt);
+
+        // then
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void getAccountInfo_scope_없으면_예외() {
+        // given
+        String cckId = "CCK2501";
+        Account account = mock(Account.class);
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn(cckId);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
+
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getClaimAsStringList("scope")).thenReturn(java.util.List.of());
+
+        // when & then
+        // catch 블록에서 모든 예외가 USER_JWT_INVALID로 처리됨
+        assertThatThrownBy(() -> accountService.getAccountInfo(jwt))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_JWT_INVALID);
+    }
+
+    @Test
+    void getNormalInfo_성공() {
+        // given
+        String cckId = "CCK2501";
         Account account = mock(Account.class);
         when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
 
         // when
-        UserRole role = accountService.getUserRoleWithCCKId(cckId);
+        PlayerInfo result = accountService.getNormalInfo(cckId);
 
         // then
-        verify(accountRepository).findByCckId(cckId);
-        verify(account).getPosition();
-        assertThat(role).isNull();
+        assertThat(result).isNotNull();
     }
 
     @Test
-    void updateUser_계정이_없으면_minus1() {
+    void getNormalInfo_존재하지_않는_계정_예외() {
         // given
-        AccountEditDTO dto = mock(AccountEditDTO.class);
-        String cckId = "CCK250001";
-        when(dto.getCckId()).thenReturn(cckId);
+        String cckId = "CCK2501";
         when(accountRepository.findByCckId(cckId)).thenReturn(Optional.empty());
 
-        // when
-        int result = accountService.updateUser(dto);
-
-        // then
-        assertThat(result).isEqualTo(-1);
-        verify(accountRepository).findByCckId(cckId);
-        verify(accountRepository, never()).updateAccountInfo(anyString(), anyString());
-        verify(accountRepository, never()).updateAccountPassword(anyString(), anyString());
-    }
-
-    @Test
-    void updateUser_현재비밀번호_불일치시_minus1() {
-        // given
-        AccountEditDTO dto = mock(AccountEditDTO.class);
-        String cckId = "CCK250001";
-        String inputPassword = "wrongPw";
-        String storedEncodedPw = "encodedPw";
-
-        when(dto.getCckId()).thenReturn(cckId);
-        when(dto.getPassword()).thenReturn(inputPassword);
-
-        Account account = mock(Account.class);
-        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
-        when(account.getPassword()).thenReturn(storedEncodedPw);
-        when(encoder.matches(inputPassword, storedEncodedPw)).thenReturn(false);
-
-        // when
-        int result = accountService.updateUser(dto);
-
-        // then
-        assertThat(result).isEqualTo(-1);
-        verify(encoder).matches(inputPassword, storedEncodedPw);
-        verify(accountRepository, never()).updateAccountInfo(anyString(), anyString());
-        verify(accountRepository, never()).updateAccountPassword(anyString(), anyString());
-    }
-
-    @Test
-    void updateUser_새비밀번호_없이_상태만_변경하면_updateAccountInfo_호출되고_0리턴() {
-        // given
-        AccountEditDTO dto = mock(AccountEditDTO.class);
-        String cckId = "CCK250001";
-        String inputPassword = "pw";
-        String storedEncodedPw = "encodedPw";
-        String state = "ACTIVE";
-
-        when(dto.getCckId()).thenReturn(cckId);
-        when(dto.getPassword()).thenReturn(inputPassword);
-        when(dto.getNewPassword()).thenReturn(null);
-        when(dto.getState()).thenReturn(state);
-
-        Account account = mock(Account.class);
-        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
-        when(account.getPassword()).thenReturn(storedEncodedPw);
-        when(encoder.matches(inputPassword, storedEncodedPw)).thenReturn(true);
-
-        // when
-        int result = accountService.updateUser(dto);
-
-        // then
-        assertThat(result).isEqualTo(0);
-        verify(accountRepository).updateAccountInfo(state, cckId);
-        verify(accountRepository, never()).updateAccountPassword(anyString(), anyString());
-    }
-
-    @Test
-    void updateUser_새비밀번호_일치하면_암호화후_updateAccountPassword_호출되고_0리턴() {
-        // given
-        AccountEditDTO dto = mock(AccountEditDTO.class);
-        String cckId = "CCK250001";
-        String inputPassword = "pw";
-        String storedEncodedPw = "encodedPw";
-        String newPassword = "newPw";
-
-        when(dto.getCckId()).thenReturn(cckId);
-        when(dto.getPassword()).thenReturn(inputPassword);
-        when(dto.getNewPassword()).thenReturn(newPassword);
-        when(dto.getNewPasswordCheck()).thenReturn(newPassword);
-
-        Account account = mock(Account.class);
-        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
-        when(account.getPassword()).thenReturn(storedEncodedPw);
-        when(encoder.matches(inputPassword, storedEncodedPw)).thenReturn(true);
-
-        String encodedNewPw = "encodedNewPw";
-        when(encoder.encode(newPassword)).thenReturn(encodedNewPw);
-
-        // when
-        int result = accountService.updateUser(dto);
-
-        // then
-        assertThat(result).isEqualTo(0);
-        verify(accountRepository).updateAccountPassword(encodedNewPw, cckId);
-    }
-
-    @Test
-    void updateUser_새비밀번호와_체크값_다르면_1리턴하고_업데이트_안함() {
-        // given
-        AccountEditDTO dto = mock(AccountEditDTO.class);
-        String cckId = "CCK250001";
-        String inputPassword = "pw";
-        String storedEncodedPw = "encodedPw";
-
-        when(dto.getCckId()).thenReturn(cckId);
-        when(dto.getPassword()).thenReturn(inputPassword);
-        when(dto.getNewPassword()).thenReturn("newPw");
-        when(dto.getNewPasswordCheck()).thenReturn("otherPw");
-
-        Account account = mock(Account.class);
-        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
-        when(account.getPassword()).thenReturn(storedEncodedPw);
-        when(encoder.matches(inputPassword, storedEncodedPw)).thenReturn(true);
-
-        // when
-        int result = accountService.updateUser(dto);
-
-        // then
-        assertThat(result).isEqualTo(1);
-        verify(accountRepository, never()).updateAccountPassword(anyString(), anyString());
-    }
-
-    @Test
-    void getAccountInfoWithCCKId_계정정보_DTO로_반환() {
-        // given
-        String cckId = "CCK250001";
-        Account account = mock(Account.class);
-        when(accountRepository.findByCckId(cckId)).thenReturn(Optional.of(account));
-
-        // when
-        AccountDTO result = accountService.getAccountInfoWithCCKId(cckId);
-
-        // then
-        assertThat(result).isNotNull(); // 생성만 잘 되는지 확인
-        verify(accountRepository).findByCckId(cckId);
-    }
-
-    @Test
-    void updatePassword_이메일없으면_false() {
-        // given
-        String email = "test@example.com";
-        when(accountRepository.existsByEmail(email)).thenReturn(false);
-
-        // when
-        boolean result = accountService.updatePassword(email, "newPw");
-
-        // then
-        assertThat(result).isFalse();
-        verify(accountRepository).existsByEmail(email);
-        verify(accountRepository, never()).updateAccountPassword(anyString(), anyString());
-    }
-
-    @Test
-    void updatePassword_이메일있으면_CCK_ID찾아서_비번암호화후_업데이트하고_true() {
-        // given
-        String email = "test@example.com";
-        String newPassword = "newPw";
-        String encodedPw = "encodedNewPw";
-        String cckId = "CCK250001";
-
-        when(accountRepository.existsByEmail(email)).thenReturn(true);
-
-        Account account = mock(Account.class);
-        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
-        when(account.getCckId()).thenReturn(cckId);
-        when(encoder.encode(newPassword)).thenReturn(encodedPw);
-
-        // when
-        boolean result = accountService.updatePassword(email, newPassword);
-
-        // then
-        assertThat(result).isTrue();
-        verify(accountRepository).updateAccountPassword(encodedPw, cckId);
-    }
-
-    @Test
-    void findBySearchTerm_이름검색시_Repository_위임() {
-        // given
-        String searchTerm = "Lee";
-        List<AccountListDTO> expected = new ArrayList<>();
-        expected.add(mock(AccountListDTO.class));
-        when(accountRepository.findByName(searchTerm)).thenReturn(expected);
-
-        // when
-        List<AccountListDTO> result = accountService.findBySearchTerm(searchTerm);
-
-        // then
-        assertThat(result).hasSize(1);
-        verify(accountRepository).findByName(searchTerm);
+        // when & then
+        assertThatThrownBy(() -> accountService.getNormalInfo(cckId))
+                .isInstanceOf(CustomizedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
 }

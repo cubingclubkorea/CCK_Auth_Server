@@ -1,8 +1,9 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Service;
 
-import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.JudgeInfo;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.PlayerInfo;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
 import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.DTO.RFIDCreateDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Repository.RFIDRepository;
 import jakarta.transaction.Transactional;
@@ -17,20 +18,18 @@ import org.springframework.stereotype.Service;
 public class RFIDService {
     private final RFIDRepository rfidRepository;
     private final AccountRepository accountRepository;
-    public Integer createRFID(RFIDCreateDTO rfidCreateDTO) {
-        if (rfidRepository.findByUid(rfidCreateDTO.getUid()).isEmpty()){
-            rfidRepository.save(rfidCreateDTO.toEntity(accountRepository));
-            return 0;
+
+    public void createRFID(RFIDCreateDTO rfidCreateDTO) {
+        if(rfidRepository.existsById(rfidCreateDTO.getUid())){
+            throw new CustomizedException(ErrorCode.RFID_ALREADY_EXISTS);
         }
-        else{
-            return -1;
-        }
+        rfidRepository.save(rfidCreateDTO.toEntity(accountRepository.findByCckId(rfidCreateDTO.getCckId()).orElseThrow(()->new CustomizedException(ErrorCode.USER_NOT_FOUND))));
     }
-    public JudgeInfo getJudgeInfo(String uid){
-        return rfidRepository.findByUidWithAccount(uid)
-                .map(rfid -> new JudgeInfo(rfid.getAccount()))
-                .orElse(null);
+
+    public PlayerInfo getPlayerInfo(String uid){
+        return new PlayerInfo(rfidRepository.findByUidWithAccount(uid).orElseThrow(()->new CustomizedException(ErrorCode.RFID_NOT_FOUND)).getAccount());
     }
+
     public void deleteRFID(String email){
         rfidRepository.deleteByAccount_email(email);
     }

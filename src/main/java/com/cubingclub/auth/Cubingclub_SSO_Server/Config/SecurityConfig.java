@@ -103,7 +103,7 @@ public class SecurityConfig{
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .formLogin(form->form
                         .loginPage("/login")
@@ -111,8 +111,9 @@ public class SecurityConfig{
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/info", "/edit").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/admin/**").hasAnyRole("ROOT", "ADMIN")
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         .anyRequest().permitAll()
                 )
@@ -199,6 +200,7 @@ public class SecurityConfig{
             }
         };
     }
+
     @Bean
     public JWKSource<SecurityContext> jwkSource() throws NoSuchAlgorithmException, InvalidKeySpecException {
         return rsaKeysService.loadByJwkSet("bomkey");

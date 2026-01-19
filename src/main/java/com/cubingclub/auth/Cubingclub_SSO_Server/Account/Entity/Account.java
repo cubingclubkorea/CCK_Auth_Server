@@ -31,9 +31,9 @@ public class Account {
     @Enumerated(EnumType.STRING)
     private UserRole position;
     @Column
-    @DateTimeFormat(pattern="yyyy-MM-dd")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
-    @Column(length=15)
+    @Column(length = 15)
     private String state;
     @Column
     private Gender gender;
@@ -43,8 +43,16 @@ public class Account {
     private String wcaId;
     @Column
     private String phoneNum;
-    public Account roleUpdate(UserRole position){
-        this.position=position;
-        return this;
+
+    public void updateRole(UserRole newRole) {
+        this.position = newRole;
+    }
+
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
+    }
+
+    public void updateState(String newState) {
+        this.state = newState;
     }
 }

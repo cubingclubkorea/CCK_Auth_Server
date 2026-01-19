@@ -21,6 +21,7 @@ public class JwtCustomizer implements OAuth2TokenCustomizer<JwtEncodingContext> 
         }
         return "unknown";
     }
+
     @Override
     public void customize(JwtEncodingContext context) {
         if(context.getTokenType().getValue().equals("access_token")) {

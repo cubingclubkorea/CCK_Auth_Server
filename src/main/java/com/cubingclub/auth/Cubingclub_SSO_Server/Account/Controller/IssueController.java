@@ -6,14 +6,11 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Service.IssueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Objects;
 
 @Slf4j
 @RestController
@@ -21,37 +18,22 @@ import java.util.Objects;
 @RequestMapping("/issue")
 public class IssueController {
     private final IssueService issueService;
+
     @PostMapping("/signup")
-    public ResponseEntity<?> signupMailSend(@Valid @RequestBody EmailRequestDTO emailDto){
-        Integer status=issueService.sendJoinEmail(emailDto.getEmail());
-        if(status.equals(-2)){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email duplicate");
-        }
-        else if(status.equals(-1)){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+    public ResponseEntity<Void> signupMailSend(@Valid @RequestBody EmailRequestDTO emailDto){
+        issueService.sendJoinEmail(emailDto.getEmail());
         return ResponseEntity.ok().build();
     }
-    @PostMapping ("/verify-password")
-    public ResponseEntity<?> verifyPassMailSend(@Valid @RequestBody EmailRequestDTO emailDto){
-        Integer status=issueService.sendVerifyPassEmail(emailDto.getEmail());
-        if(status.equals(-2)){
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Email doesn't exist");
-        }
-        else if(status.equals(-1)){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+
+    @PostMapping("/verify-password")
+    public ResponseEntity<Void> verifyPassMailSend(@Valid @RequestBody EmailRequestDTO emailDto){
+        issueService.sendVerifyPassEmail(emailDto.getEmail());
         return ResponseEntity.ok().build();
     }
-    @PostMapping ("/reissue-password")//비밀번호 무작정 바꿀 수도 있기 때문에 이에 대한 대책 필요할 것...
-    public ResponseEntity<?> pwMailSend(@Valid @RequestBody PwReissueRequestDTO pwReissueRequestDTO){
-        Integer status=issueService.sendPasswordEmail(pwReissueRequestDTO);
-        if(Objects.equals(status, -2)){
-            return ResponseEntity.badRequest().body("Mail authenticate incorrect");
-        }
-        else if(Objects.equals(status, -1)){
-            return ResponseEntity.internalServerError().body("Failed to create password");
-        }
+
+    @PostMapping("/reissue-password")//비밀번호 무작정 바꿀 수도 있기 때문에 이에 대한 대책 필요할 것...
+    public ResponseEntity<Void> pwMailSend(@Valid @RequestBody PwReissueRequestDTO pwReissueRequestDTO){
+        issueService.issueTemporaryPassword(pwReissueRequestDTO);
         return ResponseEntity.ok().build();
     }
 }

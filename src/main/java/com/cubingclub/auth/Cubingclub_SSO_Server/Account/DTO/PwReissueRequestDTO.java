@@ -11,5 +11,6 @@ public class PwReissueRequestDTO {
     @Email
     @NotEmpty
     private String email;
+
     private String authNum;
 }

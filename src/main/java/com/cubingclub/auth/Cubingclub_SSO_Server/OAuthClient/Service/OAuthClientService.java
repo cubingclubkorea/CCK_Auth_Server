@@ -2,6 +2,7 @@ package com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Service;
 
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientInfoDTO;
+import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientListDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientRequestDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientResponseDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.ClientType;
@@ -18,16 +19,15 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class OAuthClientService {
     private final OAuthClientRepository oAuthClientRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -54,22 +54,17 @@ public class OAuthClientService {
         return oAuthClientInfoDTOList;
     }
 
-    public Map<String, List<OAuthClientInfoDTO>> findForAdmin(LocalDate date){
-        List<OAuthClient> list=oAuthClientRepository.findAll();
+    public OAuthClientListDTO findForAdmin() {
+        List<OAuthClient> clients = oAuthClientRepository.findAll();
 
-        Map<String, List<OAuthClientInfoDTO>> result = new HashMap<>();
-        result.put("confirmed", new ArrayList<>());
-        result.put("waiting", new ArrayList<>());
+        Map<Boolean, List<OAuthClientInfoDTO>> partitioned = clients.stream()
+                .map(OAuthClientInfoDTO::new)
+                .collect(Collectors.partitioningBy(OAuthClientInfoDTO::getIsActive));
 
-        for(OAuthClient oAuthClient:list){
-            OAuthClientInfoDTO oAuthClientInfoDTO=new OAuthClientInfoDTO(oAuthClient);
-            if(oAuthClient.isActive()){
-                result.get("confirmed").add(oAuthClientInfoDTO);
-            }
-            else{
-                result.get("waiting").add(oAuthClientInfoDTO);
-            }
-        }
+        OAuthClientListDTO result = new OAuthClientListDTO();
+        result.setConfirmed(partitioned.get(true));
+        result.setWaiting(partitioned.get(false));
+        
         return result;
     }
 

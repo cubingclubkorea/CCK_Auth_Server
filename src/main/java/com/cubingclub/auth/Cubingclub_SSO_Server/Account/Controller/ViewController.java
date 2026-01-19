@@ -21,12 +21,13 @@ public class ViewController {
     public String loginPage() {
         return "login";
     }
+
     @GetMapping("/signup")
     public String joinPage(){ return "signup"; }
+
     @GetMapping("/password-reset")
     public String passwordPage(){ return "password"; }
-    @GetMapping("/notice")
-    public String noticePage(){ return "notice"; }
+
     @GetMapping("/consent")
     public String consent(Principal principal, Model model,
                           @RequestParam("client_id") String clientId,
@@ -35,7 +36,7 @@ public class ViewController {
 
         Set<String> scopesToApprove = new LinkedHashSet<>();
         RegisteredClient registeredClient = this.registeredClientRepository.findByClientId(clientId);
-        Set<String> scopes = registeredClient.getScopes();
+        Set<String> scopes = Objects.requireNonNull(registeredClient).getScopes();
         for (String requestedScope : StringUtils.delimitedListToStringArray(scope, " ")) {
             if (scopes.contains(requestedScope)) {
                 scopesToApprove.add(requestedScope);
@@ -51,6 +52,7 @@ public class ViewController {
 
         return "consent";
     }
+
     private static Set<ScopeWithDescription> withDescription(Set<String> scopes) {
         Set<ScopeWithDescription> scopeWithDescriptions = new LinkedHashSet<>();
         for (String scope : scopes) {
