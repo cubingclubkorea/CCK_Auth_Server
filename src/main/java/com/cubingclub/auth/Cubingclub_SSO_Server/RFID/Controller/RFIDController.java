@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/rfid")
+@RequestMapping("/api/rfid")
 public class RFIDController {
     private final RFIDService rfidService;
 

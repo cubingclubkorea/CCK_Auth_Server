@@ -47,6 +47,6 @@ public class OAuthClientInfoDTO {
         this.clientSecretExpiresAt=entity.getClientSecretExpiresAt();
         this.createdAt=entity.getCreatedAt();
         this.updatedAt=entity.getUpdatedAt();
-        this.isActive=entity.isActive();
+        this.isActive=entity.getIsActive();
     }
 }

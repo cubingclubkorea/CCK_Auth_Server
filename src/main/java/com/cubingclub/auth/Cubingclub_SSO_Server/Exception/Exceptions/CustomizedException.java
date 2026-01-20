@@ -5,7 +5,6 @@ import lombok.Getter;
 
 @Getter
 public class CustomizedException extends RuntimeException {
-
     private final ErrorCode errorCode;
     private final String detailMessage;
 

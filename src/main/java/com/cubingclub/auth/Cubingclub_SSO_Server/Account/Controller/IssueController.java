@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/issue")
+@RequestMapping("/api/issue")
 public class IssueController {
     private final IssueService issueService;
 

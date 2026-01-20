@@ -20,6 +20,11 @@ public enum ErrorCode {
     ADMIN_IDENTICAL_UPDATE(HttpStatus.BAD_REQUEST, "ADMIN-002", "동일한 역할로 업데이트 중입니다."),
     ADMIN_ROOT_DOWNGRADE(HttpStatus.FORBIDDEN, "ADMIN-003", "ROOT권한은 하향 조정이 불가능합니다."),
 
+    OAUTH_NOT_FOUND(HttpStatus.BAD_REQUEST, "OAUTH-001", "OAuth 클라이언트 정보가 없습니다."),
+    OAUTH_NOT_ACTIVATED(HttpStatus.FORBIDDEN, "OAUTH-002", "OAuth 클라이언트가 비활성 상태입니다."),
+    OAUTH_OWNER_NOT_MATCH(HttpStatus.FORBIDDEN, "OAUTH-003", "OAuth 클라이언트 소유자가 아닙니다."),
+    OAUTH_PASSWORD_EXPIRED(HttpStatus.FORBIDDEN, "OAUTH-004", "OAuth 비밀번호가 만료되었습니다."),
+
     MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "MAIL-001", "메일 전송에 실패했습니다."),
 
     RFID_NOT_FOUND(HttpStatus.BAD_REQUEST, "RFID-001", "카드 등록 정보가 없습니다."),

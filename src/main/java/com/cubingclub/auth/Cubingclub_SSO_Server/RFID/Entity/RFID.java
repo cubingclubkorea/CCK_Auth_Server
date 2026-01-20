@@ -15,10 +15,8 @@ import lombok.NoArgsConstructor;
 @Table
 public class RFID {
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name = "account_email")
     private Account account;
 
     @Id
-    @Column
     private String uid;
 }

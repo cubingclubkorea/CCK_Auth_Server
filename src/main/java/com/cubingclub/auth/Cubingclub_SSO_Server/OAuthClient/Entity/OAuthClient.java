@@ -20,41 +20,55 @@ import java.util.List;
 public class OAuthClient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column
     private Long id;
+
     @Column(unique = true)
     private String clientId;
+
     @Lob
     @Column(columnDefinition = "TEXT")
     private String clientSecret;
+
     @ManyToOne
-    @JoinColumn
     private Account clientOwner;
-    @Column
+
     private String clientName;
-    @Column
+
     private String clientUri;
+
     @Lob
     @Column(columnDefinition = "TEXT")
     private String clientDescription;
-    @Column
+
     private String redirectUri;
-    @Column
+
     private String postLogoutRedirectUri;
+
     @Builder.Default
     @OneToMany(mappedBy = "oauthClient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OAuthScopes> scopes = new ArrayList<>();
-    @Column
-    private boolean requireAuthorizationConsent;
+
+    private Boolean requireAuthorizationConsent;
+
     @Enumerated(EnumType.STRING)
-    @Column
     private ClientType clientType;  // 추가 필드
-    @Column
+
     private LocalDateTime clientSecretExpiresAt;
-    @Column
+
     private LocalDateTime createdAt;
-    @Column
+
     private LocalDateTime updatedAt;
-    @Column
-    private boolean isActive;
+
+    private Boolean isActive;
+
+    public void updateSecret(String encodedSecret, LocalDateTime expiresAt) {
+        this.clientSecret = encodedSecret;
+        this.clientSecretExpiresAt = expiresAt;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void toggleActive() {
+        this.isActive = !this.isActive;
+        this.updatedAt = LocalDateTime.now();
+    }
 }
