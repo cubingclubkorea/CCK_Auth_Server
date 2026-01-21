@@ -1,5 +1,6 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,9 +9,12 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class AccountEditDTO {
-    private String cckId;
+    @NotBlank
     private String password;
+
     private String newPassword;
+
     private String newPasswordCheck;
+
     private String state;
 }

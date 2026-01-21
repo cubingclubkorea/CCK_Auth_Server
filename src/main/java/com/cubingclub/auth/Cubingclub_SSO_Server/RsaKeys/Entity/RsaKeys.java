@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table
 public class RsaKeys {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

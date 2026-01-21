@@ -4,15 +4,14 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Service.OAuthClient
 import com.cubingclub.auth.Cubingclub_SSO_Server.RsaKeys.Service.RsaKeysService;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,24 +19,28 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.oauth2.server.authorization.token.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
-import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.Collections;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 
+@Slf4j
 @RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
@@ -46,27 +49,55 @@ public class SecurityConfig{
     @Lazy
     private final OAuthClientService oAuthClientService;
     private final RsaKeysService rsaKeysService;
+    private final CorsProperties corsProperties;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final JwtBlacklistFilter jwtBlacklistFilter;
+    private final OAuth2AuthorizationSuccessHandler authorizationSuccessHandler;
+    private final OAuth2TokenResponseHandler tokenResponseHandler;
 
     @Bean
     @Order(1)
     public SecurityFilterChain authServerSecurityFilterChain(HttpSecurity http) throws Exception {
-        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(Customizer.withDefaults())
-                .authorizationEndpoint(authorizationEndpoint ->
-                        authorizationEndpoint.consentPage("/consent")
-                );
-
+        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
+                new OAuth2AuthorizationServerConfigurer();
         http
+                .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
+                .with(authorizationServerConfigurer, (authorizationServer) ->
+                        authorizationServer
+                                .oidc(Customizer.withDefaults())
+                                .authorizationEndpoint(authorizationEndpoint ->
+                                        authorizationEndpoint
+                                                .consentPage("/consent")
+                                                .authorizationResponseHandler(authorizationSuccessHandler)
+                                )
+                                .tokenEndpoint(tokenEndpoint ->
+                                        tokenEndpoint.accessTokenResponseHandler(tokenResponseHandler)
+                                )
+                );
+        http
+                .authorizeHttpRequests(authorize -> authorize
+                        .anyRequest().authenticated()
+                )
+                .exceptionHandling((exceptions) -> exceptions
+                        .defaultAuthenticationEntryPointFor(
+                                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint("/login"),
+                                new org.springframework.security.web.util.matcher.MediaTypeRequestMatcher(org.springframework.http.MediaType.TEXT_HTML)
+                        )
+                )
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .formLogin(form->form
                         .loginPage("/login")
                         .permitAll())
-                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(Customizer.withDefaults())
+                )
+                .addFilterBefore(jwtBlacklistFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
     @Bean
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -78,36 +109,57 @@ public class SecurityConfig{
                         .permitAll())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/recorder/**").hasAuthority("SCOPE_limited.read")
+                        .requestMatchers("/oauth2/token/revoke").permitAll()
                         .requestMatchers("/info", "/edit").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/admin/**").hasAnyRole("ROOT", "ADMIN")
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         .anyRequest().permitAll()
                 )
-                .cors(corsCustomizer -> corsCustomizer.configurationSource(new CorsConfigurationSource() {
-                    @Override
-                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                        CorsConfiguration config = new CorsConfiguration();
-                        config.setAllowedOrigins(Arrays.asList(
-                                "http://localhost:3000",
-                                "https://ranking.cubingclub.com",
-                                "https://test.ranking.cubingclub.com"
-                        ));
-                        config.setAllowedMethods(Collections.singletonList("*"));
-                        config.setAllowCredentials(true);
-                        config.setAllowedHeaders(Collections.singletonList("*"));
-                        config.setMaxAge(3600L);
-                        return config;
-                    }
-                }))
-                // ✅ JWT로 인증 처리
-                .oauth2ResourceServer(resourceServer ->
-                        resourceServer.jwt(Customizer.withDefaults())
+                .cors(Customizer.withDefaults())
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(Customizer.withDefaults())
+                )
+                .addFilterBefore(jwtBlacklistFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout(logout -> logout
+                        .logoutUrl("/oauth2/token/logout")
+                        .addLogoutHandler((request, response, authentication) -> {
+                            // Access Token 블랙리스트 추가
+                            String authHeader = request.getHeader("Authorization");
+                            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                                String accessToken = authHeader.substring(7);
+                                Instant expiresAt = Instant.now().plus(Duration.ofDays(7));
+                                log.info("Blacklisting access token on logout");
+                                tokenBlacklistService.blacklistToken(accessToken, expiresAt);
+                            }
+                            
+                            // Refresh Token 블랙리스트 추가
+                            String refreshToken = request.getParameter("refresh_token");
+                            if (refreshToken != null) {
+                                Instant expiresAt = Instant.now().plus(Duration.ofDays(30));
+                                log.info("Blacklisting refresh token on logout");
+                                tokenBlacklistService.blacklistToken(refreshToken, expiresAt);
+                            }
+                        })
                 );
-
         return http.build();
     }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(corsProperties.getAllowedOrigins());
+        config.setAllowedMethods(corsProperties.getAllowedMethods());
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         return new RegisteredClientRepository() {
@@ -126,6 +178,7 @@ public class SecurityConfig{
             }
         };
     }
+
     @Bean
     public JWKSource<SecurityContext> jwkSource() throws NoSuchAlgorithmException, InvalidKeySpecException {
         return rsaKeysService.loadByJwkSet("bomkey");
@@ -141,6 +194,23 @@ public class SecurityConfig{
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(new CustomJwtGrantedAuthoritiesConverter());
         return converter;
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
+        return new NimbusJwtEncoder(jwkSource);
+    }
+
+    @Bean
+    public OAuth2TokenGenerator<?> tokenGenerator(JwtEncoder jwtEncoder, OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer) {
+        JwtGenerator jwtGenerator = new JwtGenerator(jwtEncoder);
+        jwtGenerator.setJwtCustomizer(jwtCustomizer);
+        
+        OAuth2AccessTokenGenerator accessTokenGenerator = new OAuth2AccessTokenGenerator();
+        OAuth2RefreshTokenGenerator refreshTokenGenerator = new OAuth2RefreshTokenGenerator();
+        
+        return new DelegatingOAuth2TokenGenerator(
+            jwtGenerator, accessTokenGenerator, refreshTokenGenerator);
     }
 
     @Bean

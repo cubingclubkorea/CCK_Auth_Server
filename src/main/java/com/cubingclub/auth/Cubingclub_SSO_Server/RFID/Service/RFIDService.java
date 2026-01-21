@@ -1,9 +1,10 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Service;
 
-import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.AccountDTO;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.PlayerInfo;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
 import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.DTO.RFIDCreateDTO;
-import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Entity.RFID;
 import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Repository.RFIDRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -17,26 +18,19 @@ import org.springframework.stereotype.Service;
 public class RFIDService {
     private final RFIDRepository rfidRepository;
     private final AccountRepository accountRepository;
-    public Integer createRFID(RFIDCreateDTO rfidCreateDTO) {
-        if (rfidRepository.findAccountByUid(rfidCreateDTO.getUid()) == null){
-            rfidRepository.save(rfidCreateDTO.toEntity(accountRepository));
-            return 0;
+
+    public void createRFID(RFIDCreateDTO rfidCreateDTO) {
+        if(rfidRepository.existsById(rfidCreateDTO.getUid())){
+            throw new CustomizedException(ErrorCode.RFID_ALREADY_EXISTS);
         }
-        else{
-            return -1;
-        }
+        rfidRepository.save(rfidCreateDTO.toEntity(accountRepository.findByCckId(rfidCreateDTO.getCckId()).orElseThrow(()->new CustomizedException(ErrorCode.USER_NOT_FOUND))));
     }
-    public AccountDTO getAccountInfo(String uid){
-        RFID rfid=rfidRepository.findAccountByUid(uid);
-        if(rfid==null){
-            return null;
-        }
-        return new AccountDTO(rfid.getAccount());
+
+    public PlayerInfo getPlayerInfo(String uid){
+        return new PlayerInfo(rfidRepository.findByUidWithAccount(uid).orElseThrow(()->new CustomizedException(ErrorCode.RFID_NOT_FOUND)).getAccount());
     }
-    public String getEmail(String uid){
-        return rfidRepository.findEmailByUid(uid);
-    }
-    public void deleteRFID(String email){
-        rfidRepository.deleteByAccount_email(email);
+
+    public void deleteRFID(String cckId){
+        rfidRepository.deleteByAccount_CckId(cckId);
     }
 }

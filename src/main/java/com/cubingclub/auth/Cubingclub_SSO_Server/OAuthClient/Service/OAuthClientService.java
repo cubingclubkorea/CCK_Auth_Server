@@ -1,79 +1,72 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Service;
 
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
-import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientInfoDTO;
-import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientRequestDTO;
-import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.OAuthClientResponseDTO;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
+import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.*;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.ClientType;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.OAuthClient;
-import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.OAuthScopes;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Repository.OAuthClientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDate;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Transactional
 public class OAuthClientService {
     private final OAuthClientRepository oAuthClientRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final AccountRepository accountRepository;
 
     public RegisteredClient loadClientByClientId(String clientId){
-        OAuthClient result=oAuthClientRepository.findByClientId(clientId)
-                .orElseThrow(()->new IllegalArgumentException("Client not found exception: "+clientId));
-        return loadClientByResult(result);
+        return loadClientByResult(oAuthClientRepository.findByClientId(clientId).orElseThrow(()->new CustomizedException(ErrorCode.OAUTH_NOT_FOUND)));
     }
 
     public RegisteredClient findByIdString(String id){
-        Long longId=Long.valueOf(id);
-        OAuthClient result=oAuthClientRepository.findById(longId).get();
-        return loadClientByResult(result);
+        return loadClientByResult(oAuthClientRepository.findById(Long.valueOf(id)).orElseThrow(()->new CustomizedException(ErrorCode.OAUTH_NOT_FOUND)));
     }
 
-    public List<OAuthClientInfoDTO> findByClientCCKId(String cckId){
-        List<OAuthClient> oAuthClientList=oAuthClientRepository.findByClientOwner_CckId(cckId);
-        List<OAuthClientInfoDTO> oAuthClientInfoDTOList=new ArrayList<>();
-        for(OAuthClient oAuthClient:oAuthClientList){
-            oAuthClientInfoDTOList.add(new OAuthClientInfoDTO(oAuthClient));
-        }
-        return oAuthClientInfoDTOList;
+    public List<OAuthClientInfoDTO> findByClientCCKId(){
+        return oAuthClientRepository
+                .findByClientOwner_CckId(SecurityContextHolder.getContext().getAuthentication().getName())
+                .stream()
+                .map(OAuthClientInfoDTO::new)
+                .toList();
     }
 
-    public Map<String, List<OAuthClientInfoDTO>> findForAdmin(LocalDate date){
-        List<OAuthClient> list=oAuthClientRepository.findAll();
+    public OAuthClientListDTO findForAdmin() {
+        List<OAuthClient> clients = oAuthClientRepository.findAll();
 
-        Map<String, List<OAuthClientInfoDTO>> result = new HashMap<>();
-        result.put("confirmed", new ArrayList<>());
-        result.put("waiting", new ArrayList<>());
+        Map<Boolean, List<OAuthClientInfoDTO>> partitioned = clients.stream()
+                .map(OAuthClientInfoDTO::new)
+                .collect(Collectors.partitioningBy(OAuthClientInfoDTO::getIsActive));
 
-        for(OAuthClient oAuthClient:list){
-            OAuthClientInfoDTO oAuthClientInfoDTO=new OAuthClientInfoDTO(oAuthClient);
-            if(oAuthClient.isActive()){
-                result.get("confirmed").add(oAuthClientInfoDTO);
-            }
-            else{
-                result.get("waiting").add(oAuthClientInfoDTO);
-            }
-        }
+        OAuthClientListDTO result = new OAuthClientListDTO();
+        result.setConfirmed(partitioned.get(true));
+        result.setWaiting(partitioned.get(false));
+        
         return result;
     }
 
-    public String makePassword(){
+    private String makePassword(){
         final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         SecureRandom r=new SecureRandom();
         StringBuilder pw=new StringBuilder();
@@ -84,110 +77,48 @@ public class OAuthClientService {
         return pw.toString();
     }
 
-    public OAuthClientResponseDTO updateSecret(String clientId, String cckId, Integer expireDays) throws IllegalAccessException {
-        OAuthClient oldClient=oAuthClientRepository.findByClientId(clientId).orElseThrow();
-        if (!oldClient.isActive()) {
-            throw new IllegalStateException("Client should be activated: " + oldClient.getClientId());
-        }
-        if(!oldClient.getClientOwner().getCckId().equals(cckId)){
-            throw new IllegalAccessException("Forbidden: Owner not match");
-        }
-        String newSecret=makePassword();
-        OAuthClient updatedClient = OAuthClient.builder()
-                .id(oldClient.getId())  // 기존 ID 유지 → update
-                .clientId(oldClient.getClientId())
-                .clientSecret(bCryptPasswordEncoder.encode(newSecret)) // 새 비밀번호
-                .clientName(oldClient.getClientName())
-                .clientUri(oldClient.getClientUri())
-                .clientDescription(oldClient.getClientDescription())
-                .clientOwner(oldClient.getClientOwner())
-                .redirectUri(oldClient.getRedirectUri())
-                .postLogoutRedirectUri(oldClient.getPostLogoutRedirectUri())
-                .scopes(oldClient.getScopes())
-                .requireAuthorizationConsent(oldClient.isRequireAuthorizationConsent())
-                .clientType(oldClient.getClientType())
-                .clientSecretExpiresAt(LocalDateTime.now().plusDays(expireDays)) // 새 만료일
-                .createdAt(oldClient.getCreatedAt())
-                .updatedAt(LocalDateTime.now()) // 갱신 시간
-                .isActive(true)
-                .build();
+    public OAuthClientResponseDTO updateSecret(OAuthClientSecretDTO oAuthClientSecretDTO) {
+        String cckId = SecurityContextHolder.getContext().getAuthentication().getName();
+        OAuthClient client = oAuthClientRepository.findByClientId(oAuthClientSecretDTO.getClientId()).orElseThrow();
 
-        return new OAuthClientResponseDTO(oAuthClientRepository.save(updatedClient), newSecret);
+        if (!client.getIsActive()) {
+            throw new CustomizedException(ErrorCode.OAUTH_NOT_ACTIVATED);
+        }
+
+        if(!client.getClientOwner().getCckId().equals(cckId)){
+            throw new CustomizedException(ErrorCode.OAUTH_OWNER_NOT_MATCH);
+        }
+
+        String newSecret = makePassword();
+        client.updateSecret(
+            bCryptPasswordEncoder.encode(newSecret),
+            LocalDateTime.now().plusDays(oAuthClientSecretDTO.getExpireDay())
+        );
+
+        return new OAuthClientResponseDTO(client, newSecret);
     }
 
-    public OAuthClientResponseDTO updateSecretDefault(String clientId, String secret, Integer expireDays){
-        OAuthClient oldClient=oAuthClientRepository.findByClientId(clientId).orElseThrow();
-        OAuthClient updatedClient = OAuthClient.builder()
-                .id(oldClient.getId())  // 기존 ID 유지 → update
-                .clientId(oldClient.getClientId())
-                .clientSecret(bCryptPasswordEncoder.encode(secret)) // 새 비밀번호
-                .clientName(oldClient.getClientName())
-                .clientUri(oldClient.getClientUri())
-                .clientDescription(oldClient.getClientDescription())
-                .clientOwner(oldClient.getClientOwner())
-                .redirectUri(oldClient.getRedirectUri())
-                .postLogoutRedirectUri(oldClient.getPostLogoutRedirectUri())
-                .scopes(oldClient.getScopes())
-                .requireAuthorizationConsent(oldClient.isRequireAuthorizationConsent())
-                .clientType(oldClient.getClientType())
-                .clientSecretExpiresAt(LocalDateTime.now().plusDays(expireDays)) // 새 만료일
-                .createdAt(oldClient.getCreatedAt())
-                .updatedAt(LocalDateTime.now()) // 갱신 시간
-                .isActive(true)
-                .build();
-
-        return new OAuthClientResponseDTO(oAuthClientRepository.save(updatedClient));
+    public void updateSecretDefault(String clientId, String secret, Integer expireDays){
+        OAuthClient client = oAuthClientRepository.findByClientId(clientId).orElseThrow();
+        client.updateSecret(
+            bCryptPasswordEncoder.encode(secret),
+            LocalDateTime.now().plusDays(expireDays)
+        );
     }
 
     public OAuthClientResponseDTO updateConfirm(Long id){
-        OAuthClient oldClient=oAuthClientRepository.findById(id).orElseThrow();
-        OAuthClient updatedClient = OAuthClient.builder()
-                .id(oldClient.getId())  // 기존 ID 유지 → update
-                .clientId(oldClient.getClientId())
-                .clientName(oldClient.getClientName())
-                .clientUri(oldClient.getClientUri())
-                .clientDescription(oldClient.getClientDescription())
-                .clientOwner(oldClient.getClientOwner())
-                .redirectUri(oldClient.getRedirectUri())
-                .postLogoutRedirectUri(oldClient.getPostLogoutRedirectUri())
-                .scopes(oldClient.getScopes())
-                .requireAuthorizationConsent(oldClient.isRequireAuthorizationConsent())
-                .clientType(oldClient.getClientType())
-                .createdAt(oldClient.getCreatedAt())
-                .updatedAt(LocalDateTime.now()) // 갱신 시간
-                .isActive(!oldClient.isActive())
-                .build();
-        return new OAuthClientResponseDTO(oAuthClientRepository.save(updatedClient));
+        OAuthClient client = oAuthClientRepository.findById(id).orElseThrow();
+        client.toggleActive();
+        return new OAuthClientResponseDTO(client);
     }
 
-    public OAuthClientResponseDTO saveOAuthClient(OAuthClientRequestDTO oAuthClientRequestDTO, String cckId){
-        if (oAuthClientRepository.findByClientId(oAuthClientRequestDTO.getClientId()).isEmpty()) {
-            OAuthClient client = OAuthClient.builder()
-                    .clientId(oAuthClientRequestDTO.getClientId())
-                    .clientName(oAuthClientRequestDTO.getClientName())
-                    .clientUri(oAuthClientRequestDTO.getClientUri())
-                    .clientDescription(oAuthClientRequestDTO.getClientDescription())
-                    .clientOwner(accountRepository.findByCckId(cckId).orElseThrow())
-                    .redirectUri(oAuthClientRequestDTO.getRedirectUri())
-                    .postLogoutRedirectUri(oAuthClientRequestDTO.getPostLogoutRedirectUri())
-                    .requireAuthorizationConsent(oAuthClientRequestDTO.isRequireAuthorizationConsent())
-                    .clientType(oAuthClientRequestDTO.getClientType())
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .isActive(false)
-                    .build();
-            if(oAuthClientRequestDTO.getScopes()!=null) {
-                for (String s : oAuthClientRequestDTO.getScopes()) {
-                    OAuthScopes scope = OAuthScopes.builder()
-                            .oAuthClient(client)
-                            .scope(s)
-                            .build();
-                    client.getScopes().add(scope);
-                }
-            }
-            return new OAuthClientResponseDTO(oAuthClientRepository.save(client));
+    public void saveOAuthClient(OAuthClientCreateDTO oAuthClientCreateDTO){
+        String cckId = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (oAuthClientRepository.findByClientId(oAuthClientCreateDTO.getClientId()).isEmpty()) {
+            Account owner = accountRepository.findByCckId(cckId).orElseThrow();
+            OAuthClient client = oAuthClientCreateDTO.toEntity(owner);
+            oAuthClientRepository.save(client);
         }
-        return null;
     }
 
     public void deleteOAuthClient(Long id){
@@ -195,7 +126,7 @@ public class OAuthClientService {
     }
 
     private RegisteredClient loadClientByResult(OAuthClient result){
-        if (!result.isActive()) {
+        if (!result.getIsActive()) {
             throw new IllegalStateException("Client should be activated: " + result.getClientId());
         }
         if (result.getClientSecretExpiresAt() != null &&
@@ -212,8 +143,12 @@ public class OAuthClientService {
             builder
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                     .scope("limited.read")
-                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build());
+                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofHours(1))
+                            .build());
         }
+
         else{
             builder
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
@@ -221,10 +156,14 @@ public class OAuthClientService {
                     .redirectUri(result.getRedirectUri())
                     .postLogoutRedirectUri(result.getPostLogoutRedirectUri())
                     .clientSettings(ClientSettings.builder()
-                    .requireAuthorizationConsent(result.isRequireAuthorizationConsent()).build());
-            for(OAuthScopes s : result.getScopes()){
-                builder.scope(s.getScope());
-            }
+                            .requireAuthorizationConsent(result.getRequireAuthorizationConsent()).build())
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofHours(1))
+                            .refreshTokenTimeToLive(Duration.ofDays(30))
+                            .reuseRefreshTokens(false) // Refresh Token Rotation 활성화
+                            .build());
+            
+            result.getScopes().forEach(builder::scope);
         }
         return builder.build();
     }

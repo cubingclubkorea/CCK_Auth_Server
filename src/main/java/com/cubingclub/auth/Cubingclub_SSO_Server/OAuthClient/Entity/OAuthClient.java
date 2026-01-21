@@ -6,6 +6,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,13 +18,12 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor
-@Table
 @Builder
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class OAuthClient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column
     private Long id;
     @Column(unique = true)
     private String clientId;
@@ -28,33 +31,49 @@ public class OAuthClient {
     @Column(columnDefinition = "TEXT")
     private String clientSecret;
     @ManyToOne
-    @JoinColumn
     private Account clientOwner;
-    @Column
     private String clientName;
-    @Column
     private String clientUri;
     @Lob
     @Column(columnDefinition = "TEXT")
     private String clientDescription;
-    @Column
     private String redirectUri;
-    @Column
     private String postLogoutRedirectUri;
+    @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
     @Builder.Default
-    @OneToMany(mappedBy = "oAuthClient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<OAuthScopes> scopes = new ArrayList<>();
-    @Column
-    private boolean requireAuthorizationConsent;
+    private List<String> scopes = new ArrayList<>();
+    private Boolean requireAuthorizationConsent;
     @Enumerated(EnumType.STRING)
-    @Column
     private ClientType clientType;  // 추가 필드
-    @Column
     private LocalDateTime clientSecretExpiresAt;
-    @Column
+    @CreatedDate
     private LocalDateTime createdAt;
-    @Column
+    @LastModifiedDate
     private LocalDateTime updatedAt;
-    @Column
-    private boolean isActive;
+    private Boolean isActive;
+
+    public void addScope(String scope) {
+        scopes.add(scope);
+    }
+
+    public void clearScopes() {
+        scopes.clear();
+    }
+
+    @PreRemove
+    private void preRemove() {
+        clearScopes();
+    }
+
+    public void updateSecret(String encodedSecret, LocalDateTime expiresAt) {
+        this.clientSecret = encodedSecret;
+        this.clientSecretExpiresAt = expiresAt;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void toggleActive() {
+        this.isActive = !this.isActive;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

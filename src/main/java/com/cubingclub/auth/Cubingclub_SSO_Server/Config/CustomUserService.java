@@ -20,7 +20,7 @@ public class CustomUserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Account account = accountRepository.findByCckId(username)
-                .orElseGet(() -> accountRepository.findByEmail(username.toUpperCase())
+                .orElseGet(() -> accountRepository.findById(username.toUpperCase())
                         .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username)));
         return org.springframework.security.core.userdetails.User
                 .withUsername(account.getCckId())

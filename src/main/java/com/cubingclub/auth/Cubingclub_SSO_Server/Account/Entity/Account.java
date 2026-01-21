@@ -6,45 +6,52 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Builder
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table
+@EntityListeners(AuditingEntityListener.class)
 public class Account {
     @Id
-    @Column
     private String email;
-    @Column
     private String name;
-    @Column
     private String enName;
-    @Column
     @JsonIgnore
     private String password;
-    @Column
     @Enumerated(EnumType.STRING)
     private UserRole position;
-    @Column
-    @DateTimeFormat(pattern="yyyy-MM-dd")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
-    @Column(length=15)
+    @Column(length = 20)
     private String state;
-    @Column
     private Gender gender;
     @Column(unique = true)
     private String cckId;
-    @Column
     private String wcaId;
-    @Column
     private String phoneNum;
-    public Account roleUpdate(UserRole position){
-        this.position=position;
-        return this;
+    @CreatedDate
+    private LocalDateTime createdAt;
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    public void updateRole(UserRole newRole) {
+        this.position = newRole;
+    }
+
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
+    }
+
+    public void updateState(String newState) {
+        this.state = newState;
     }
 }

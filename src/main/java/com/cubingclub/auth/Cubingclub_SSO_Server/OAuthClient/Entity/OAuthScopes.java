@@ -22,7 +22,7 @@ public class OAuthScopes {
     @ManyToOne
     @JsonIgnore
     @JoinColumn
-    private OAuthClient oAuthClient;
+    private OAuthClient oauthClient;
     @Column
     private String scope;
 }
