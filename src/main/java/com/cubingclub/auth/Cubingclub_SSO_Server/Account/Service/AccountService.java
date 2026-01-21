@@ -104,6 +104,7 @@ public class AccountService {
         try{
             AccountDTO accountDTO=new AccountDTO(accountRepository.findByCckId(authentication.getName()).orElseThrow(()->new CustomizedException(ErrorCode.USER_NOT_FOUND)));
             List<String> scopes = jwt.getClaimAsStringList("scope");
+            log.info(scopes.toString());
             if(!scopes.contains("profile")){
                 throw new CustomizedException(ErrorCode.USER_SCOPE_FORBIDDEN);
             }
@@ -116,7 +117,7 @@ public class AccountService {
             return accountDTO;
         }
         catch(Exception e){
-            throw new CustomizedException(ErrorCode.USER_JWT_INVALID);
+            throw new CustomizedException(ErrorCode.USER_JWT_INVALID, e.getMessage());
         }
     }
 

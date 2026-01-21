@@ -1,6 +1,20 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.Config;
 
-/*
+
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Gender;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.UserRole;
+import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Repository.AccountRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Repository.OAuthClientRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Service.OAuthClientService;
+import com.cubingclub.auth.Cubingclub_SSO_Server.RsaKeys.Repository.RsaKeysRepository;
+import com.cubingclub.auth.Cubingclub_SSO_Server.RsaKeys.Service.RsaKeysService;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Component;
+
 @Component
 @RequiredArgsConstructor
 public class Initializer {
@@ -19,13 +33,14 @@ public class Initializer {
     @PostConstruct
     public void initiator() throws Exception {
         // 1. RSA Keys
+        /*
         String keyId = "bomkey";
         if(rsaKeysRepository.findByIdentifier(keyId).isEmpty()) {
             rsaKeysService.saveRsaKeys(keyId);
             System.out.println("✅ RSA Keys created for: " + keyId);
         }
 
-        Account account=new Account("cubingclubkorea@gmail.com", "관리자", "Administrator", encoder.encode("clientSecret"), UserRole.ROOT, null, null, Gender.Unknown, "CCK25ADMI01", null, null);
+        Account account=new Account("cubingclubkorea@gmail.com", "관리자", "Administrator", encoder.encode(clientSecret), UserRole.ROOT, null, null, Gender.Unknown, "CCK25ADMI01", null, null);
         accountRepository.save(account);
 
         // 2. OAuth Client
@@ -60,6 +75,7 @@ public class Initializer {
             oAuthClientService.updateSecretDefault(clientId, clientSecret, 365);
             System.out.println("✅ OAuth Client created: " + clientId);
         }
+
+         */
     }
 }
-*/

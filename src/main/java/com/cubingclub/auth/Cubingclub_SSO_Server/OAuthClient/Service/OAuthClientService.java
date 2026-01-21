@@ -7,7 +7,6 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.Customized
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.DTO.*;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.ClientType;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.OAuthClient;
-import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Entity.OAuthScopes;
 import com.cubingclub.auth.Cubingclub_SSO_Server.OAuthClient.Repository.OAuthClientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,10 +16,12 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -142,7 +143,10 @@ public class OAuthClientService {
             builder
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                     .scope("limited.read")
-                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build());
+                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofHours(1))
+                            .build());
         }
 
         else{
@@ -152,12 +156,15 @@ public class OAuthClientService {
                     .redirectUri(result.getRedirectUri())
                     .postLogoutRedirectUri(result.getPostLogoutRedirectUri())
                     .clientSettings(ClientSettings.builder()
-                    .requireAuthorizationConsent(result.getRequireAuthorizationConsent()).build());
-            for(OAuthScopes s : result.getScopes()){
-                builder.scope(s.getScope());
-            }
+                            .requireAuthorizationConsent(result.getRequireAuthorizationConsent()).build())
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofHours(1))
+                            .refreshTokenTimeToLive(Duration.ofDays(30))
+                            .reuseRefreshTokens(false) // Refresh Token Rotation 활성화
+                            .build());
+            
+            result.getScopes().forEach(builder::scope);
         }
-
         return builder.build();
     }
 }

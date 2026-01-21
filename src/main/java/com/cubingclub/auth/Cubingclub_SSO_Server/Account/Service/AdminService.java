@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminService {
     private final AccountRepository accountRepository;
 
@@ -40,7 +42,7 @@ public class AdminService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserRole myPosition = getUserRoleWithCCKId(authentication.getName());
         UserRole targetPosition = getUserRoleWithCCKId(roleUpdateDTO.getCckId());
-
+        log.info(myPosition.toString());
         if (myPosition == UserRole.CUSTOMER || myPosition == UserRole.ADMIN || roleUpdateDTO.getPosition() == UserRole.ROOT) {
             throw new CustomizedException(ErrorCode.ADMIN_FORBIDDEN);
         }
@@ -58,6 +60,7 @@ public class AdminService {
     }
 
     private UserRole getUserRoleWithCCKId(String cckId){
+        log.info("Retrieving user role for CCK ID: " + cckId);
         return accountRepository.findByCckId(cckId).orElseThrow(()->new CustomizedException(ErrorCode.USER_NOT_FOUND)).getPosition();
     }
 }

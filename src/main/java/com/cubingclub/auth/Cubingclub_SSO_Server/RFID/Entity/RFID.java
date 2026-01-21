@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table
 public class RFID {
     @ManyToOne(fetch=FetchType.LAZY)
     private Account account;

@@ -11,5 +11,5 @@ public interface RFIDRepository extends JpaRepository<RFID, String> {
     @Query("select r from RFID r join fetch r.account where r.uid = :uid")
     Optional<RFID> findByUidWithAccount(@Param("uid") String uid);
 
-    void deleteByAccount_email(String email);
+    void deleteByAccount_CckId(String cckId);
 }

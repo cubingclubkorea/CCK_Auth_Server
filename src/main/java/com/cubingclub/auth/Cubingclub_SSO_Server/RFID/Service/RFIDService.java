@@ -30,7 +30,7 @@ public class RFIDService {
         return new PlayerInfo(rfidRepository.findByUidWithAccount(uid).orElseThrow(()->new CustomizedException(ErrorCode.RFID_NOT_FOUND)).getAccount());
     }
 
-    public void deleteRFID(String email){
-        rfidRepository.deleteByAccount_email(email);
+    public void deleteRFID(String cckId){
+        rfidRepository.deleteByAccount_CckId(cckId);
     }
 }
