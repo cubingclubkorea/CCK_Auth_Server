@@ -9,7 +9,7 @@ jar {
 }
 
 group = 'com.cubingclub.auth'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 description = 'Cubingclubs Auth, SSO management server'
 
 java {
