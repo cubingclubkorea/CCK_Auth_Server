@@ -26,8 +26,6 @@ public class OAuth2AuthorizationSuccessHandler implements AuthenticationSuccessH
         OAuth2AuthorizationCodeRequestAuthenticationToken authorizationCodeRequestAuthentication =
                 (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
         
-        log.info("Authorization code generated, clearing JSESSIONID");
-        
         // OAuth2 Authorization Code 응답 URL 생성
         String redirectUri = authorizationCodeRequestAuthentication.getRedirectUri();
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
@@ -48,7 +46,6 @@ public class OAuth2AuthorizationSuccessHandler implements AuthenticationSuccessH
         // 세션 무효화
         HttpSession session = request.getSession(false);
         if (session != null) {
-            log.info("Invalidating session after authorization code generation");
             session.invalidate();
         }
         

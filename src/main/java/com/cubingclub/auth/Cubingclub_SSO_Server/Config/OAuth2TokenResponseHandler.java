@@ -45,13 +45,8 @@ public class OAuth2TokenResponseHandler implements AuthenticationSuccessHandler 
                 // 새로운 refresh token 생성 시 이전 refresh token을 블랙리스트에 추가
                 Instant expiresAt = refreshToken.getExpiresAt() != null 
                     ? refreshToken.getExpiresAt() 
-                    : Instant.now().plus(30, ChronoUnit.DAYS);
-                    
-                log.info("Refresh token rotation:");
-                log.info("  - Old refresh token (blacklisting): {}", oldRefreshToken.substring(0, Math.min(20, oldRefreshToken.length())) + "...");
-                log.info("  - New refresh token (returning): {}", refreshToken.getTokenValue().substring(0, Math.min(20, refreshToken.getTokenValue().length())) + "...");
-                log.info("  - Are they different? {}", !oldRefreshToken.equals(refreshToken.getTokenValue()));
-                
+                    : Instant.now().plus(7, ChronoUnit.DAYS);
+
                 tokenBlacklistService.blacklistToken(oldRefreshToken, expiresAt);
             }
         }
