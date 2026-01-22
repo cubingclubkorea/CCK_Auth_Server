@@ -27,7 +27,6 @@ public class TokenLogoutController {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String accessToken = authHeader.substring(7);
             Instant expiresAt = Instant.now().plus(Duration.ofDays(7));
-            log.info("Blacklisting access token via revoke endpoint");
             tokenBlacklistService.blacklistToken(accessToken, expiresAt);
         }
         
@@ -38,9 +37,7 @@ public class TokenLogoutController {
                 ? Duration.ofDays(30) 
                 : Duration.ofDays(7);
             Instant expiresAt = Instant.now().plus(duration);
-            
-            log.info("Blacklisting {} via revoke endpoint", 
-                tokenTypeHint != null ? tokenTypeHint : "token");
+
             tokenBlacklistService.blacklistToken(token, expiresAt);
         }
         
