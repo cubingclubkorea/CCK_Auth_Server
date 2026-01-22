@@ -110,10 +110,10 @@ public class SecurityConfig{
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/oauth2/token/revoke").permitAll()
-                        .requestMatchers("/info", "/edit").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/admin/**").hasAnyRole("ROOT", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/**").hasAnyRole("ROOT", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers("/api/auth/info", "/api/auth/edit", "/api/oauth-client/**", "/api/rfid/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/**").hasAnyRole("ROOT", "ADMIN")
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         .anyRequest().permitAll()
                 )
@@ -129,16 +129,14 @@ public class SecurityConfig{
                             String authHeader = request.getHeader("Authorization");
                             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                                 String accessToken = authHeader.substring(7);
-                                Instant expiresAt = Instant.now().plus(Duration.ofDays(7));
-                                log.info("Blacklisting access token on logout");
+                                Instant expiresAt = Instant.now().plus(Duration.ofDays(1));
                                 tokenBlacklistService.blacklistToken(accessToken, expiresAt);
                             }
                             
                             // Refresh Token 블랙리스트 추가
                             String refreshToken = request.getParameter("refresh_token");
                             if (refreshToken != null) {
-                                Instant expiresAt = Instant.now().plus(Duration.ofDays(30));
-                                log.info("Blacklisting refresh token on logout");
+                                Instant expiresAt = Instant.now().plus(Duration.ofDays(7));
                                 tokenBlacklistService.blacklistToken(refreshToken, expiresAt);
                             }
                         })
