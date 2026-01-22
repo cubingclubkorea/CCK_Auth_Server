@@ -5,7 +5,7 @@ plugins {
 }
 
 jar {
-	enabled=false
+	enabled = false
 }
 
 group = 'com.cubingclub.auth'
