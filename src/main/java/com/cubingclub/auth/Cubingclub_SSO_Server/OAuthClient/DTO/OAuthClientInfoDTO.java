@@ -14,7 +14,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class OAuthClientInfoDTO {
-    private Long id;
     private String clientId;
     private String clientName;
     private String clientUri;
@@ -30,7 +29,6 @@ public class OAuthClientInfoDTO {
     private Boolean isActive;
 
     public OAuthClientInfoDTO(OAuthClient entity){
-        this.id=entity.getId();
         this.clientId=entity.getClientId();
         this.clientName=entity.getClientName();
         this.clientUri=entity.getClientUri();

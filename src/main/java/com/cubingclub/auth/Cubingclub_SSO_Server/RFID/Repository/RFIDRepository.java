@@ -12,4 +12,6 @@ public interface RFIDRepository extends JpaRepository<RFID, String> {
     Optional<RFID> findByUidWithAccount(@Param("uid") String uid);
 
     void deleteByAccount_CckId(String cckId);
+
+    Boolean existsByAccount_CckId(String cckId);
 }

@@ -58,13 +58,13 @@ public class AdminController {
     }
 
     @PostMapping("/client/confirm/{id}")
-    public ResponseEntity<Void> confirmClient(@PathVariable Long id){
+    public ResponseEntity<Void> confirmClient(@PathVariable String id){
         oAuthClientService.updateConfirm(id);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/client/confirm/{id}")
-    public ResponseEntity<Void> denyClient(@PathVariable Long id){
+    public ResponseEntity<Void> denyClient(@PathVariable String id){
         oAuthClientService.deleteOAuthClient(id);
         return ResponseEntity.ok().build();
     }

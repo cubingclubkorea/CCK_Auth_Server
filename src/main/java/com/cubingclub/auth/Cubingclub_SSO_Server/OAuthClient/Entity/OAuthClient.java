@@ -23,8 +23,6 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 public class OAuthClient {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
     @Column(unique = true)
     private String clientId;
     @Lob

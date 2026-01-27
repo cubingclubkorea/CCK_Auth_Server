@@ -15,7 +15,12 @@ public class RFIDController {
     private final RFIDService rfidService;
 
     @GetMapping("/info/{uid}")
-    public ResponseEntity<PlayerInfo> getPlayerInfo(@PathVariable String uid){
+    public ResponseEntity<PlayerInfo> getPlayerInfo(@PathVariable String uid) {
         return ResponseEntity.ok(rfidService.getPlayerInfo(uid));
+    }
+
+    @GetMapping("/exist/{cckId}")
+    public ResponseEntity<Void> exist(@PathVariable String cckId) {
+        return rfidService.exist(cckId);
     }
 }

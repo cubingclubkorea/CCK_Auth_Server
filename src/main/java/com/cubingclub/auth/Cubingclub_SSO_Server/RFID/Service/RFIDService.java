@@ -9,6 +9,7 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Repository.RFIDRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -32,5 +33,15 @@ public class RFIDService {
 
     public void deleteRFID(String cckId){
         rfidRepository.deleteByAccount_CckId(cckId);
+    }
+
+    public ResponseEntity<Void> exist(String cckId){
+        if(rfidRepository.existsByAccount_CckId(cckId)){
+            return ResponseEntity.ok().build();
+        }
+
+        else{
+            return ResponseEntity.notFound().build();
+        }
     }
 }

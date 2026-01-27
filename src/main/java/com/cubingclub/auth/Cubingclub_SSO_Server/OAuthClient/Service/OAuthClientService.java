@@ -41,7 +41,7 @@ public class OAuthClientService {
     }
 
     public RegisteredClient findByIdString(String id){
-        return loadClientByResult(oAuthClientRepository.findById(Long.valueOf(id)).orElseThrow(()->new CustomizedException(ErrorCode.OAUTH_NOT_FOUND)));
+        return loadClientByResult(oAuthClientRepository.findById(id).orElseThrow(()->new CustomizedException(ErrorCode.OAUTH_NOT_FOUND)));
     }
 
     public List<OAuthClientInfoDTO> findByClientCCKId(){
@@ -106,7 +106,7 @@ public class OAuthClientService {
         );
     }
 
-    public OAuthClientResponseDTO updateConfirm(Long id){
+    public OAuthClientResponseDTO updateConfirm(String id){
         OAuthClient client = oAuthClientRepository.findById(id).orElseThrow();
         client.toggleActive();
         return new OAuthClientResponseDTO(client);
@@ -121,7 +121,7 @@ public class OAuthClientService {
         }
     }
 
-    public void deleteOAuthClient(Long id){
+    public void deleteOAuthClient(String id){
         oAuthClientRepository.deleteById(id);
     }
 

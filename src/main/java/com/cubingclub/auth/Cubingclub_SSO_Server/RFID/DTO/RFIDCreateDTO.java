@@ -13,7 +13,7 @@ public class RFIDCreateDTO {
     private String cckId;
     private String uid;
 
-    public RFID toEntity(Account account){
+    public RFID toEntity(Account account) {
         return RFID
                 .builder()
                 .account(account)
