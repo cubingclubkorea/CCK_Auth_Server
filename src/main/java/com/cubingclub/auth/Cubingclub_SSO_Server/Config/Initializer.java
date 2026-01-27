@@ -1,6 +1,6 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.Config;
 
-
+/*
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Gender;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.UserRole;
@@ -75,7 +75,6 @@ public class Initializer {
             oAuthClientService.updateSecretDefault(clientId, clientSecret, 365);
             System.out.println("✅ OAuth Client created: " + clientId);
         }
-
-         */
     }
 }
+*/

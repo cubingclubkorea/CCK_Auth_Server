@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,6 +44,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -51,10 +53,14 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig{
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+    @Value("${cors.allowed-methods}")
+    private String allowedMethods;
+
     @Lazy
     private final OAuthClientService oAuthClientService;
     private final RsaKeysService rsaKeysService;
-    private final CorsProperties corsProperties;
     private final TokenBlacklistService tokenBlacklistService;
     private final JwtBlacklistFilter jwtBlacklistFilter;
     private final OAuth2AuthorizationSuccessHandler authorizationSuccessHandler;
@@ -152,8 +158,8 @@ public class SecurityConfig{
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(corsProperties.getAllowedOrigins());
-        config.setAllowedMethods(corsProperties.getAllowedMethods());
+        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        config.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
