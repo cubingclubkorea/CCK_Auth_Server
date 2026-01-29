@@ -4,6 +4,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
+      lettuce:
+        protocol: RESP2
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_SCHEMA}?autoReconnect=true
     username: ${DB_USERNAME}

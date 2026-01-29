@@ -71,7 +71,7 @@ public class OAuthClient {
     }
 
     public void toggleActive() {
-        this.isActive = !this.isActive;
+        this.isActive = true;
         this.updatedAt = LocalDateTime.now();
     }
 }
