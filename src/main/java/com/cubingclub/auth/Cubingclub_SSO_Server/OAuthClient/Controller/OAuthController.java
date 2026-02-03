@@ -30,7 +30,7 @@ public class OAuthController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/secret")
+    @PatchMapping("/secret")
     public ResponseEntity<OAuthClientResponseDTO> UpdateSecret(@RequestBody OAuthClientSecretDTO oAuthClientSecretDTO){
         return ResponseEntity.ok(oAuthClientService.updateSecret(oAuthClientSecretDTO));
     }

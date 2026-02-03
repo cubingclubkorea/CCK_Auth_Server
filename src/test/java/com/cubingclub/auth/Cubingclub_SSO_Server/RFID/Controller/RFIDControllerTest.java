@@ -1,7 +1,6 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Controller;
 
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.DTO.PlayerInfo;
-import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.DTO.RFIDDTO;
 import com.cubingclub.auth.Cubingclub_SSO_Server.RFID.Service.RFIDService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

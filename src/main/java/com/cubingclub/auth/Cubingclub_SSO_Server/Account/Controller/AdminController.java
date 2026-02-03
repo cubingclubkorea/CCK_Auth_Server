@@ -46,9 +46,15 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/rfid/{cckId}")
+    @DeleteMapping("/rfid/user/{cckId}")
     public ResponseEntity<Void> deleteRFID(@PathVariable String cckId){
         rfidService.deleteRFID(cckId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/rfid/{uid}")
+    public ResponseEntity<Void> deleteRFIDByUID(@PathVariable String uid){
+        rfidService.deleteRFIDByUID(uid);
         return ResponseEntity.ok().build();
     }
 

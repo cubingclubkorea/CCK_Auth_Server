@@ -35,6 +35,10 @@ public class RFIDService {
         rfidRepository.deleteByAccount_CckId(cckId);
     }
 
+    public void deleteRFIDByUID(String uid){
+        rfidRepository.deleteById(uid);
+    }
+
     public ResponseEntity<Void> exist(String cckId){
         if(rfidRepository.existsByAccount_CckId(cckId)){
             return ResponseEntity.ok().build();
