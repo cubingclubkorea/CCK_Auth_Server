@@ -1,5 +1,6 @@
 package com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity;
 
+import com.cubingclub.auth.Cubingclub_SSO_Server.Crypto.CryptoConverter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -37,6 +38,7 @@ public class Account {
     @Column(unique = true)
     private String cckId;
     private String wcaId;
+    @Convert(converter = CryptoConverter.class)
     private String phoneNum;
     @CreatedDate
     private LocalDateTime createdAt;
