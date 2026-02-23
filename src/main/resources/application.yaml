@@ -19,3 +19,7 @@ spring:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS}
   allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+crypto:
+  aes-key: ${AES_SECRET}
+server:
+  forward-headers-strategy: framework
