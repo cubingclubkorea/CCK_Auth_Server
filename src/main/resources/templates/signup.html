@@ -195,7 +195,7 @@
                 headers['X-XSRF-TOKEN'] = csrfToken;
             }
 
-            const response = await fetch('/issue/signup', {
+            const response = await fetch('/api/issue/signup', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ email }),
@@ -261,7 +261,7 @@
                 headers['X-XSRF-TOKEN'] = csrfToken;
             }
 
-            const response = await fetch('/join', {
+            const response = await fetch('/api/join', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(data),
