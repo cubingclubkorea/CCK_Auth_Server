@@ -4,7 +4,6 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Account;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.Gender;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Account.Entity.UserRole;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

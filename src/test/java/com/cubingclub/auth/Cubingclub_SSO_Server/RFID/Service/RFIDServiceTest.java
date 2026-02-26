@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 import java.util.Optional;
 
@@ -123,14 +124,54 @@ class RFIDServiceTest {
     }
 
     @Test
-    void deleteRFID_이메일로_RFID_삭제() {
+    void deleteRFID_CckId로_RFID_삭제() {
         // given
-        String email = "test@example.com";
+        String cckId = "CCK2501";
 
         // when
-        rfidService.deleteRFID(email);
+        rfidService.deleteRFID(cckId);
 
         // then
-        verify(rfidRepository).deleteByAccount_email(email);
+        verify(rfidRepository).deleteByAccount_CckId(cckId);
+    }
+
+    @Test
+    void deleteRFIDByUID_UID로_RFID_삭제() {
+        // given
+        String uid = "1234567890";
+
+        // when
+        rfidService.deleteRFIDByUID(uid);
+
+        // then
+        verify(rfidRepository).deleteById(uid);
+    }
+
+    @Test
+    void exist_RFID가_존재하면_OK() {
+        // given
+        String cckId = "CCK2501";
+        when(rfidRepository.existsByAccount_CckId(cckId)).thenReturn(true);
+
+        // when
+        ResponseEntity<Void> result = rfidService.exist(cckId);
+
+        // then
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        verify(rfidRepository).existsByAccount_CckId(cckId);
+    }
+
+    @Test
+    void exist_RFID가_없으면_NotFound() {
+        // given
+        String cckId = "CCK2501";
+        when(rfidRepository.existsByAccount_CckId(cckId)).thenReturn(false);
+
+        // when
+        ResponseEntity<Void> result = rfidService.exist(cckId);
+
+        // then
+        assertThat(result.getStatusCode().value()).isEqualTo(404);
+        verify(rfidRepository).existsByAccount_CckId(cckId);
     }
 }
