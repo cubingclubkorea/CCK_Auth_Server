@@ -6,6 +6,7 @@ import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Entity.ErrorCode;
 import com.cubingclub.auth.Cubingclub_SSO_Server.Exception.Exceptions.CustomizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -21,6 +22,7 @@ public class IssueService {
     private final AccountRepository accountRepository;
     private final SpringTemplateEngine springTemplateEngine;
     private final MailAsyncService mailAsyncService;
+    private final BCryptPasswordEncoder encoder;
 
     public void sendJoinEmail(String email) {
         if (accountRepository.existsById(email)) {
@@ -44,7 +46,7 @@ public class IssueService {
 
         String tempPassword = generateTempPassword();
         accountRepository.findById(request.getEmail()).ifPresent(account -> {
-            account.updatePassword(tempPassword);
+            account.updatePassword(encoder.encode(tempPassword));
         });
         String title = "Cubing Club Korea 임시 비밀번호 생성";
         String content = buildPasswordEmailContent(tempPassword);
