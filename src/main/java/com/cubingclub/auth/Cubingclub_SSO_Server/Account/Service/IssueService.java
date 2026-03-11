@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 
@@ -35,12 +36,16 @@ public class IssueService {
         sendAuthNumEmail(email);
     }
 
+    @Transactional
     public void issueTemporaryPassword(PwReissueRequestDTO request) {
         if (!authNumberService.verify(request.getEmail(), request.getAuthNum())) {
             throw new CustomizedException(ErrorCode.USER_AUTH_NUMBER_INCORRECT);
         }
 
         String tempPassword = generateTempPassword();
+        accountRepository.findById(request.getEmail()).ifPresent(account -> {
+            account.updatePassword(tempPassword);
+        });
         String title = "Cubing Club Korea 임시 비밀번호 생성";
         String content = buildPasswordEmailContent(tempPassword);
         mailAsyncService.sendEmail(request.getEmail(), title, content);
